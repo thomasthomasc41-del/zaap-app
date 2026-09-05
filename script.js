@@ -3905,6 +3905,300 @@ ${body}`;
   });
 
   /* ============================================================
+     SPLASH SCREEN + ONBOARDING
+  ============================================================ */
+  const splashEl        = document.getElementById('splashScreen');
+  const onboardingEl    = document.getElementById('onboardingOverlay');
+  const onboardingNext  = document.getElementById('onboardingNext');
+  const onboardingPrev  = document.getElementById('onboardingPrev');
+  const onboardingSkip  = document.getElementById('onboardingSkip');
+
+  const ONBOARDING_KEY  = 'zaap_onboarded';
+  let   currentStep     = 1;
+  const totalSteps      = 3;
+
+  function showStep(n) {
+    currentStep = n;
+    document.querySelectorAll('.onboarding-step').forEach(s => {
+      s.classList.toggle('active', parseInt(s.dataset.step) === n);
+    });
+    document.querySelectorAll('.onboarding-dot').forEach(d => {
+      d.classList.toggle('active', parseInt(d.dataset.dot) === n);
+    });
+    // Bouton retour
+    onboardingPrev.style.visibility = n === 1 ? 'hidden' : 'visible';
+    // Bouton suivant / terminer
+    onboardingNext.textContent = n === totalSteps ? 'Commencer →' : 'Suivant →';
+  }
+
+  function closeOnboarding() {
+    onboardingEl.classList.remove('open');
+    try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch(_) {}
+  }
+
+  onboardingNext.addEventListener('click', () => {
+    if (currentStep < totalSteps) showStep(currentStep + 1);
+    else closeOnboarding();
+  });
+  onboardingPrev.addEventListener('click', () => {
+    if (currentStep > 1) showStep(currentStep - 1);
+  });
+  onboardingSkip.addEventListener('click', closeOnboarding);
+
+  // Clic sur les dots
+  document.querySelectorAll('.onboarding-dot').forEach(dot => {
+    dot.addEventListener('click', () => showStep(parseInt(dot.dataset.dot)));
+  });
+
+  // Splash : afficher 1.8s puis disparaitre
+  function startSplash() {
+    const alreadyOnboarded = (() => {
+      try { return localStorage.getItem(ONBOARDING_KEY); } catch(_) { return null; }
+    })();
+
+    setTimeout(() => {
+      splashEl.classList.add('fade-out');
+      setTimeout(() => {
+        splashEl.classList.add('hidden');
+        // Afficher onboarding seulement a la premiere visite
+        if (!alreadyOnboarded) {
+          showStep(1);
+          onboardingEl.classList.add('open');
+        }
+      }, 600);
+    }, 1600);
+  }
+
+  startSplash();
+
+  /* ============================================================
+  /* ============================================================
+     FICHES DE REVISION (FLASHCARDS)
+  const FLASHCARD_PROMPT_QA = 'Tu es un professeur expert. Analyse ce texte et genere des flashcards en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{q:question,r:reponse}]. Genere 5 a 15 fiches. Questions courtes, reponses concises.';
+  const FLASHCARD_PROMPT_SUMMARY = 'Tu es un professeur expert. Analyse ce texte et genere des fiches resume par theme en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{q:titre,r:resume}]. Genere 4 a 10 fiches.';
+
+  let flashcards      = [];
+  let flashcardIndex  = 0;
+  let flashcardFormat = 'qa';
+  let isDragging      = false;
+  let dragOffX = 0, dragOffY = 0;
+
+  // ── Ouvrir / fermer ───────────────────────────────────────
+  function openFlashcardPanel() {
+    const panel = document.getElementById('flashcardPanel');
+    if (!panel) return;
+    // Reset
+    flashcards = []; flashcardIndex = 0;
+    showFlashcardSection('setup');
+    panel.classList.add('open');
+  }
+
+  function closeFlashcardPanel() {
+    const panel = document.getElementById('flashcardPanel');
+    if (panel) panel.classList.remove('open');
+  }
+
+  // ── Sections ─────────────────────────────────────────────
+  function showFlashcardSection(name) {
+    const sections = { setup: 'flashcardSetup', loading: 'flashcardLoading', view: 'flashcardView', done: 'flashcardDone' };
+    Object.values(sections).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+    const el = document.getElementById(sections[name]);
+    if (el) el.style.display = name === 'loading' ? 'flex' : (name === 'view' || name === 'done' ? 'flex' : 'block');
+  }
+
+  // ── Générer les fiches ────────────────────────────────────
+  async function generateFlashcards() {
+    const tb = textBox || document.querySelector('.textBox');
+    const title = titleEl ? titleEl.innerText.trim() : '';
+    const body  = tb ? tb.innerText.trim() : '';
+    const content = (title + '
+
+' + body).trim();
+
+    if (content.length < 50) {
+      showToast('Le document est trop court pour générer des fiches');
+      return;
+    }
+
+    showFlashcardSection('loading');
+
+    const prompt = flashcardFormat === 'qa' ? FLASHCARD_PROMPT_QA : FLASHCARD_PROMPT_SUMMARY;
+
+    try {
+      const storedKey = (() => { try { return localStorage.getItem('zaap_api_key') || ''; } catch(_) { return ''; } })();
+      const cleanKey  = (storedKey || ANTHROPIC_API_KEY).replace(/[^ -~]/g, '').trim();
+      if (!cleanKey) throw new Error('Cle API manquante - configure-la dans Preferences');
+
+      const MAX_RETRIES = 3;
+      let response;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': cleanKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 2000,
+            messages: [{ role: 'user', content: prompt + '
+
+Texte :
+' + content.slice(0, 4000) }],
+          }),
+        });
+        if (response.status === 529) {
+          if (attempt < MAX_RETRIES) {
+            showToast('Serveurs IA charges, tentative ' + attempt + '/' + MAX_RETRIES + '...');
+            await new Promise(r => setTimeout(r, 3500 * attempt));
+            continue;
+          }
+          throw new Error('Serveurs IA surcharges. Reessaie dans quelques secondes.');
+        }
+        break;
+      }
+
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      const text = (data.content?.[0]?.text || '').trim();
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('Reponse IA invalide');
+      flashcards = JSON.parse(match[0]);
+      if (!flashcards.length) throw new Error('Aucune fiche generee');
+
+      flashcardIndex = 0;
+      showFlashcardSection('view');
+      renderFlashcard();
+
+    } catch(err) {
+      showFlashcardSection('setup');
+      showToast('Erreur : ' + (err.message || 'connexion impossible'));
+    }
+  }
+
+  // ── Afficher une carte ────────────────────────────────────
+  function renderFlashcard() {
+    const card    = document.getElementById('flashcardCard');
+    const front   = document.getElementById('flashcardFront');
+    const back    = document.getElementById('flashcardBack');
+    const counter = document.getElementById('flashcardCounter');
+    const prevBtn = document.getElementById('flashcardPrev');
+    const nextBtn = document.getElementById('flashcardNext');
+    const hint    = document.getElementById('flashcardHint');
+    if (!card || !front || !back) return;
+
+    // Réinitialiser le flip
+    card.classList.remove('flipped');
+    const fc = flashcards[flashcardIndex];
+    front.textContent = fc.q;
+    back.textContent  = fc.r;
+    counter.textContent = (flashcardIndex + 1) + ' / ' + flashcards.length;
+    if (prevBtn) prevBtn.disabled = flashcardIndex === 0;
+    if (nextBtn) nextBtn.textContent = flashcardIndex === flashcards.length - 1 ? '✓' : '→';
+    if (hint) hint.textContent = card.classList.contains('flipped') ? 'Cliquer pour la question' : 'Cliquer pour la reponse';
+  }
+
+  // ── Drag & drop du panneau ────────────────────────────────
+  function initFlashcardDrag() {
+    const header = document.getElementById('flashcardPanelHeader');
+    const panel  = document.getElementById('flashcardPanel');
+    if (!header || !panel) return;
+
+    header.addEventListener('mousedown', e => {
+      if (e.target.closest('.flashcard-close')) return;
+      isDragging = true;
+      const rect = panel.getBoundingClientRect();
+      dragOffX = e.clientX - rect.left;
+      dragOffY = e.clientY - rect.top;
+      panel.style.transform = 'none';
+      panel.style.left = rect.left + 'px';
+      panel.style.top  = rect.top  + 'px';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      panel.style.left = (e.clientX - dragOffX) + 'px';
+      panel.style.top  = (e.clientY - dragOffY) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => { isDragging = false; });
+  }
+
+  // ── Listeners délégués ────────────────────────────────────
+  document.addEventListener('click', e => {
+    // Bouton toolbar fiches
+    if (e.target.closest('#openFlashcards')) { openFlashcardPanel(); return; }
+    // Fermer
+    if (e.target.closest('#flashcardClose')) { closeFlashcardPanel(); return; }
+    // Format Q/R ou Résumé
+    const fmtBtn = e.target.closest('.flashcard-format-btn');
+    if (fmtBtn) {
+      document.querySelectorAll('.flashcard-format-btn').forEach(b => b.classList.remove('active'));
+      fmtBtn.classList.add('active');
+      flashcardFormat = fmtBtn.dataset.format;
+      return;
+    }
+    // Générer
+    if (e.target.closest('#flashcardGenerate')) { generateFlashcards(); return; }
+    // Retourner la carte
+    if (e.target.closest('#flashcardCard')) {
+      const card = document.getElementById('flashcardCard');
+      const hint = document.getElementById('flashcardHint');
+      card.classList.toggle('flipped');
+      if (hint) hint.textContent = card.classList.contains('flipped') ? 'Cliquer pour la question' : 'Cliquer pour la reponse';
+      return;
+    }
+    // Navigation précédent
+    if (e.target.closest('#flashcardPrev')) {
+      if (flashcardIndex > 0) { flashcardIndex--; renderFlashcard(); }
+      return;
+    }
+    // Navigation suivant / terminer
+    if (e.target.closest('#flashcardNext')) {
+      if (flashcardIndex < flashcards.length - 1) { flashcardIndex++; renderFlashcard(); }
+      else { showFlashcardSection('done'); }
+      return;
+    }
+    // Recommencer
+    if (e.target.closest('#flashcardRestart')) {
+      flashcardIndex = 0;
+      showFlashcardSection('view');
+      renderFlashcard();
+      return;
+    }
+  });
+
+  // Navigation clavier
+  document.addEventListener('keydown', e => {
+    const panel = document.getElementById('flashcardPanel');
+    if (!panel || !panel.classList.contains('open')) return;
+    if (e.key === 'ArrowRight') document.getElementById('flashcardNext')?.click();
+    if (e.key === 'ArrowLeft')  document.getElementById('flashcardPrev')?.click();
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('flashcardCard')?.click(); }
+    if (e.key === 'Escape') closeFlashcardPanel();
+  });
+
+  // Init drag + listener bouton toolbar
+  function initFlashcardListeners() {
+    const btn = document.getElementById('openFlashcards');
+    if (btn) {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openFlashcardPanel();
+      });
+    }
+    initFlashcardDrag();
+  }
+  document.addEventListener('DOMContentLoaded', initFlashcardListeners);
+  setTimeout(initFlashcardListeners, 300);
+
+  /* ============================================================
      INIT
   ============================================================ */
   // Tenter de restaurer depuis localStorage

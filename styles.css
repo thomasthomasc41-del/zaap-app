@@ -3120,3 +3120,392 @@ body.dark .recap-task-input { background: #141210; }
 /* Vue mois + semaine : prendre toute la largeur quand récap ouvert */
 .agenda-layout.recap-open .agenda-month,
 .agenda-layout.recap-open .agenda-week { min-width: 0; }
+
+/* ============================================================
+   SPLASH SCREEN
+============================================================ */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--page-bg, #F5F1EB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+.splash-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.splash-screen.hidden { display: none; }
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: splashIn 0.7s ease forwards;
+}
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.splash-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(80,60,35,0.18);
+}
+.splash-name {
+  font-family: 'Lora', serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: #2e2318;
+  letter-spacing: -0.5px;
+}
+
+/* ============================================================
+   ONBOARDING
+============================================================ */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,14,8,0.55);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(3px);
+}
+.onboarding-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.onboarding-modal {
+  background: var(--page-bg, #F5F1EB);
+  border-radius: 20px;
+  width: 440px;
+  padding: 40px 36px 28px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  animation: onboardIn 0.3s ease;
+}
+@keyframes onboardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Étapes */
+.onboarding-step {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 200px;
+}
+.onboarding-step.active { display: flex; }
+
+.onboarding-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  line-height: 1;
+}
+.onboarding-title {
+  font-family: 'Lora', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #2e2318;
+  margin: 0 0 12px;
+  line-height: 1.25;
+}
+.onboarding-desc {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #6b5c4e;
+  margin: 0 0 10px;
+}
+.onboarding-desc kbd {
+  background: rgba(80,60,35,0.1);
+  border: 1px solid rgba(80,60,35,0.2);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #4a3828;
+}
+.onboarding-note {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 12.5px;
+  color: #b87028;
+  background: rgba(184,107,42,0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.onboarding-cta {
+  font-family: 'Lora', serif;
+  font-size: 16px;
+  color: #b87028;
+  font-style: italic;
+  margin-top: 12px;
+}
+
+/* Dots */
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 28px 0 24px;
+}
+.onboarding-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(80,60,35,0.2);
+  transition: background 0.2s, transform 0.2s;
+}
+.onboarding-dot.active {
+  background: #b87028;
+  transform: scale(1.2);
+}
+
+/* Footer */
+.onboarding-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.onboarding-skip {
+  background: none;
+  border: none;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  color: rgba(80,60,35,0.45);
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.12s;
+}
+.onboarding-skip:hover { color: rgba(80,60,35,0.7); }
+.onboarding-nav { display: flex; gap: 8px; align-items: center; }
+.onboarding-prev {
+  background: none;
+  border: 1px solid rgba(80,60,35,0.2);
+  border-radius: 9px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13px;
+  color: #6b5c4e;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.onboarding-prev:hover { background: rgba(80,60,35,0.06); }
+.onboarding-next {
+  background: #2e2318;
+  border: none;
+  border-radius: 9px;
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgba(240,232,218,0.95);
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s;
+}
+.onboarding-next:hover { background: #4a3828; transform: translateY(-1px); }
+.onboarding-next:active { transform: translateY(0); }
+
+/* ============================================================
+   PANNEAU FICHES DE REVISION (FLASHCARDS)
+============================================================ */
+.flashcard-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 7500;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+.flashcard-panel.open { display: flex; }
+body.dark .flashcard-panel { background: #1c1916; border-color: rgba(255,255,255,0.08); }
+
+.flashcard-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  background: linear-gradient(to bottom, var(--accent-soft), transparent);
+  flex-shrink: 0;
+}
+.flashcard-panel-header:active { cursor: grabbing; }
+body.dark .flashcard-panel-header { background: linear-gradient(to bottom, rgba(184,107,42,0.08), transparent); }
+.flashcard-panel-left { display: flex; align-items: center; gap: 8px; }
+.flashcard-panel-icon { font-size: 14px; color: var(--accent); }
+.flashcard-panel-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+}
+.flashcard-panel-right { display: flex; align-items: center; gap: 10px; }
+.flashcard-counter {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-hint);
+}
+.flashcard-close {
+  background: none; border: none;
+  color: var(--text-hint); font-size: 13px;
+  cursor: pointer; width: 24px; height: 24px;
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s;
+}
+.flashcard-close:hover { background: rgba(80,60,35,0.1); color: var(--text); }
+
+.flashcard-setup { padding: 24px 24px 20px; }
+.flashcard-setup-label {
+  font-family: var(--font-ui);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--text-hint); margin: 0 0 12px;
+}
+.flashcard-format-btns { display: flex; gap: 10px; margin-bottom: 20px; }
+.flashcard-format-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 14px 10px;
+  background: rgba(80,60,35,0.04);
+  border: 1.5px solid var(--border);
+  border-radius: 12px; cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.flashcard-format-btn:hover { background: var(--accent-soft); border-color: rgba(184,107,42,0.3); }
+.flashcard-format-btn.active { background: var(--accent-soft); border-color: var(--accent); }
+body.dark .flashcard-format-btn { background: rgba(255,255,255,0.04); }
+.flashcard-format-icon { font-size: 22px; color: var(--accent); }
+.flashcard-format-name {
+  font-family: var(--font-ui); font-size: 13px;
+  font-weight: 600; color: var(--text);
+}
+.flashcard-format-desc {
+  font-family: var(--font-ui); font-size: 11px; color: var(--text-hint);
+}
+.flashcard-generate-btn {
+  width: 100%; padding: 11px;
+  background: var(--brown); color: rgba(240,232,218,0.95);
+  border: none; border-radius: 10px;
+  font-family: var(--font-ui); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: background 0.12s, transform 0.1s;
+}
+.flashcard-generate-btn:hover { background: var(--brown-mid); transform: translateY(-1px); }
+
+.flashcard-loading {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 48px 24px;
+  font-family: var(--font-ui); font-size: 14px; color: var(--text-hint);
+}
+.flashcard-spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: aiSpin 0.8s linear infinite;
+}
+
+.flashcard-view {
+  padding: 20px 24px 20px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+}
+.flashcard-scene {
+  width: 100%; height: 200px;
+  perspective: 1000px;
+}
+.flashcard-card {
+  width: 100%; height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(.4,0,.2,1);
+  cursor: pointer;
+}
+.flashcard-card.flipped { transform: rotateY(180deg); }
+.flashcard-front,
+.flashcard-back {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.flashcard-front {
+  background: rgba(80,60,35,0.04);
+  border: 1.5px solid var(--border);
+  font-weight: 500;
+}
+.flashcard-back {
+  background: var(--accent-soft);
+  border: 1.5px solid rgba(184,107,42,0.3);
+  transform: rotateY(180deg);
+  font-size: 14.5px;
+  color: var(--text-body);
+}
+body.dark .flashcard-front { background: rgba(255,255,255,0.04); }
+body.dark .flashcard-back  { background: rgba(184,107,42,0.1); border-color: rgba(184,107,42,0.2); }
+
+.flashcard-hint {
+  font-family: var(--font-ui); font-size: 11.5px;
+  color: var(--text-hint); margin: 0;
+}
+.flashcard-nav { display: flex; gap: 12px; }
+.flashcard-nav-btn {
+  width: 40px; height: 40px;
+  background: rgba(80,60,35,0.06);
+  border: 1px solid var(--border);
+  border-radius: 50%; font-size: 16px;
+  color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, transform 0.1s;
+}
+.flashcard-nav-btn:hover { background: var(--accent-soft); border-color: var(--accent); transform: scale(1.05); }
+.flashcard-nav-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+.flashcard-done {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 48px 24px;
+  text-align: center;
+}
+.flashcard-done-icon { font-size: 40px; color: var(--accent); }
+.flashcard-done p {
+  font-family: var(--font-display); font-size: 18px;
+  font-weight: 600; color: var(--text); margin: 0;
+}
+.flashcard-restart-btn {
+  padding: 9px 20px;
+  background: var(--brown); color: rgba(240,232,218,0.95);
+  border: none; border-radius: 9px;
+  font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background 0.12s;
+  margin-top: 4px;
+}
+.flashcard-restart-btn:hover { background: var(--brown-mid); }

@@ -13,6 +13,51 @@
 </head>
 <body>
 
+  <!-- Splash Screen -->
+  <div class="splash-screen" id="splashScreen">
+    <div class="splash-content">
+      <img src="zaap-icon.png" class="splash-logo" alt="Zaap"/>
+      <span class="splash-name">Zaap</span>
+    </div>
+  </div>
+
+  <!-- Onboarding -->
+  <div class="onboarding-overlay" id="onboardingOverlay">
+    <div class="onboarding-modal">
+      <div class="onboarding-steps">
+        <div class="onboarding-step active" data-step="1">
+          <div class="onboarding-icon">📄</div>
+          <h2 class="onboarding-title">Ton espace d’écriture</h2>
+          <p class="onboarding-desc">Le mode <strong>Page</strong> est un éditeur avancé avec pagination, styles et sauvegarde instantanée. Tout ce que tu écris est conservé localement dans ton navigateur.</p>
+        </div>
+        <div class="onboarding-step" data-step="2">
+          <div class="onboarding-icon">✦</div>
+          <h2 class="onboarding-title">L’IA au service de ta plume</h2>
+          <p class="onboarding-desc">Sélectionne un paragraphe et appuie sur <kbd>Ctrl+Shift+A</kbd> pour <strong>Affiner</strong>, <strong>Réécrire</strong> ou <strong>Élever</strong> ton texte. Passe la souris sur un terme entre guillemets pour sa définition.</p>
+          <p class="onboarding-note">⚠ Nécessite une clé API Anthropic — configure-la dans <strong>⚙ Préférences</strong></p>
+        </div>
+        <div class="onboarding-step" data-step="3">
+          <div class="onboarding-icon">📅</div>
+          <h2 class="onboarding-title">Organise ton temps</h2>
+          <p class="onboarding-desc">Le mode <strong>Agenda</strong> gère tes événements en vue mensuelle ou hebdomadaire. Tape <kbd>!agenda réunion demain 10h</kbd> dans ton texte pour créer un événement en langage naturel.</p>
+          <p class="onboarding-cta">Tu es prêt à commencer !</p>
+        </div>
+      </div>
+      <div class="onboarding-dots">
+        <span class="onboarding-dot active" data-dot="1"></span>
+        <span class="onboarding-dot" data-dot="2"></span>
+        <span class="onboarding-dot" data-dot="3"></span>
+      </div>
+      <div class="onboarding-footer">
+        <button class="onboarding-skip" id="onboardingSkip">Passer</button>
+        <div class="onboarding-nav">
+          <button class="onboarding-prev" id="onboardingPrev" style="visibility:hidden">Retour</button>
+          <button class="onboarding-next" id="onboardingNext">Suivant →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">Zaap</div>
 
@@ -87,6 +132,12 @@
       </div>
       <span class="toolbar-sep"></span>
       <span class="word-count" id="wordCount">0 mot</span>
+      <button class="dark-toggle" id="openFlashcards" title="Fiches de révision">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <rect x="1" y="1" width="6" height="9" rx="1" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="8" y="3" width="6" height="9" rx="1" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+      </button>
       <button class="dark-toggle" id="darkToggle" title="Mode sombre (Ctrl+D)" aria-label="Basculer le mode sombre">
         <svg id="darkIcon" width="15" height="15" viewBox="0 0 15 15" fill="none">
           <path d="M7.5 1.5a6 6 0 1 0 6 6 4.5 4.5 0 0 1-6-6z" fill="currentColor"/>
@@ -316,6 +367,68 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <!-- Panneau Fiches de révision -->
+  <div class="flashcard-panel" id="flashcardPanel">
+    <div class="flashcard-panel-header" id="flashcardPanelHeader">
+      <div class="flashcard-panel-left">
+        <span class="flashcard-panel-icon">✦</span>
+        <span class="flashcard-panel-title">Fiches de révision</span>
+      </div>
+      <div class="flashcard-panel-right">
+        <span class="flashcard-counter" id="flashcardCounter"></span>
+        <button class="flashcard-close" id="flashcardClose">✕</button>
+      </div>
+    </div>
+
+    <!-- Choix du mode -->
+    <div class="flashcard-setup" id="flashcardSetup">
+      <p class="flashcard-setup-label">Choisir le format</p>
+      <div class="flashcard-format-btns">
+        <button class="flashcard-format-btn active" data-format="qa">
+          <span class="flashcard-format-icon">?</span>
+          <span class="flashcard-format-name">Q / R</span>
+          <span class="flashcard-format-desc">Questions et réponses</span>
+        </button>
+        <button class="flashcard-format-btn" data-format="summary">
+          <span class="flashcard-format-icon">≡</span>
+          <span class="flashcard-format-name">Résumé</span>
+          <span class="flashcard-format-desc">Fiches par thème</span>
+        </button>
+      </div>
+      <button class="flashcard-generate-btn" id="flashcardGenerate">
+        ✦ Générer les fiches
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="flashcard-loading" id="flashcardLoading" style="display:none">
+      <div class="flashcard-spinner"></div>
+      <p>Analyse du document en cours…</p>
+    </div>
+
+    <!-- Carte -->
+    <div class="flashcard-view" id="flashcardView" style="display:none">
+      <div class="flashcard-scene" id="flashcardScene">
+        <div class="flashcard-card" id="flashcardCard">
+          <div class="flashcard-front" id="flashcardFront"></div>
+          <div class="flashcard-back" id="flashcardBack"></div>
+        </div>
+      </div>
+      <p class="flashcard-hint" id="flashcardHint">Cliquer pour retourner</p>
+      <div class="flashcard-nav">
+        <button class="flashcard-nav-btn" id="flashcardPrev">←</button>
+        <button class="flashcard-nav-btn" id="flashcardNext">→</button>
+      </div>
+    </div>
+
+    <!-- Fin -->
+    <div class="flashcard-done" id="flashcardDone" style="display:none">
+      <span class="flashcard-done-icon">✓</span>
+      <p>Séance terminée !</p>
+      <button class="flashcard-restart-btn" id="flashcardRestart">Recommencer</button>
+    </div>
+  </div>
 
   <!-- Auto-correcteur IA — bouton marge -->
   <button class="ai-margin-btn" id="aiMarginBtn" title="Corriger avec l'IA (Ctrl+Shift+A)">✦</button>
