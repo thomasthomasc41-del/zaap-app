@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zaap</title>
+  <link rel="icon" type="image/png" href="zaap-icon.png"/>
+  <link rel="apple-touch-icon" href="zaap-icon.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Nunito+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Zaap</div>
+
+    <!-- Workspace racine -->
+    <div class="workspace-header">
+      <span class="workspace-icon">◈</span>
+      <span class="workspace-name" id="workspaceName">Mon espace</span>
+      <button class="ctx-trigger workspace-ctx" id="workspaceCtxBtn" title="Options" tabindex="-1">…</button>
+    </div>
+
+    <!-- Fichiers racine -->
+    <ul class="root-file-list" id="rootFileList"></ul>
+
+    <!-- Dossiers -->
+    <ul class="folder-list" id="folderList"></ul>
+
+    <!-- Bouton Nouveau dossier -->
+    <div class="sidebar-actions">
+      <button class="sidebar-action-btn" id="newFolderBtn" title="Nouveau dossier">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Nouveau dossier
+      </button>
+    </div>
+
+    <!-- Table des matières -->
+    <div class="toc-section" id="tocSection">
+      <div class="sidebar-section-label toc-label">Table des matières</div>
+      <nav class="toc-list" id="tocList">
+        <p class="toc-empty">Ajoutez des titres H1 / H2…</p>
+      </nav>
+    </div>
+    <button class="sidebar-shortcuts-hint" id="openShortcuts">⌘/ Raccourcis</button>
+    <button class="sidebar-shortcuts-hint" id="openPrefs" style="opacity:0.6">⚙ Préférences</button>
+  </aside>
+
+  <!-- Menu contextuel -->
+  <ul class="ctx-menu" id="ctxMenu" role="menu"></ul>
+
+  <button class="sidebar-toggle" id="toggleSidebar" aria-label="Toggle sidebar">
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+      <rect y="2.5"  width="15" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect y="6.75" width="15" height="1.5" rx="0.75" fill="currentColor"/>
+      <rect y="11"   width="15" height="1.5" rx="0.75" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <nav class="mode-toolbar" id="modeToolbar">
+    <button class="mode-btn active" data-mode="page">
+      <i data-lucide="file-text" class="mode-icon"></i>Page
+    </button>
+    <button class="mode-btn" data-mode="calendar">
+      <i data-lucide="calendar" class="mode-icon"></i>Agenda
+    </button>
+    <button class="mode-btn" data-mode="mail">
+      <i data-lucide="mail" class="mode-icon"></i>Mail
+    </button>
+    <button class="mode-btn" data-mode="search">
+      <i data-lucide="search" class="mode-icon"></i>Recherche
+    </button>
+    <button class="mode-btn" data-mode="cloud">
+      <i data-lucide="cloud" class="mode-icon"></i>Nuage
+    </button>
+    <div class="toolbar-right">
+      <span class="save-status" id="saveStatus"></span>
+      <span class="toolbar-sep"></span>
+      <div class="font-size-control" id="fontSizeControl" title="Taille du texte">
+        <button class="fs-btn" id="fsDown" aria-label="Réduire la taille">−</button>
+        <span class="fs-value" id="fsValue">15</span>
+        <button class="fs-btn" id="fsUp" aria-label="Augmenter la taille">+</button>
+      </div>
+      <span class="toolbar-sep"></span>
+      <span class="word-count" id="wordCount">0 mot</span>
+      <button class="dark-toggle" id="darkToggle" title="Mode sombre (Ctrl+D)" aria-label="Basculer le mode sombre">
+        <svg id="darkIcon" width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <path d="M7.5 1.5a6 6 0 1 0 6 6 4.5 4.5 0 0 1-6-6z" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="dark-toggle" id="focusToggle" title="Mode focus (Ctrl+Shift+F)" aria-label="Mode focus">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <rect x="1" y="1" width="4" height="4" rx="0.75" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="10" y="1" width="4" height="4" rx="0.75" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="1" y="10" width="4" height="4" rx="0.75" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="10" y="10" width="4" height="4" rx="0.75" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Floating format toolbar -->
+  <div class="format-toolbar" id="formatToolbar" role="toolbar" aria-label="Formatage du texte">
+    <button class="fmt-btn" data-cmd="bold"         title="Gras (Ctrl+B)"><b>G</b></button>
+    <button class="fmt-btn" data-cmd="italic"       title="Italique (Ctrl+I)"><em>I</em></button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn fmt-text" data-cmd="h1"  title="Titre (Ctrl+1)">H1</button>
+    <button class="fmt-btn fmt-text" data-cmd="h2"  title="Sous-titre (Ctrl+2)">H2</button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn fmt-text" data-cmd="removeFormat" title="Effacer le style">✕</button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn fmt-text" data-cmd="blockquote" title="Citation (&gt; + espace)">" "</button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn fmt-text" data-cmd="ul" title="Liste à puces (Ctrl+Shift+8)">• —</button>
+    <button class="fmt-btn fmt-text" data-cmd="ol" title="Liste numérotée (Ctrl+Shift+7)">1—</button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn fmt-text" data-cmd="alignLeft"    title="Aligner à gauche (Ctrl+Shift+L)">←</button>
+    <button class="fmt-btn fmt-text" data-cmd="alignCenter"  title="Centrer (Ctrl+Shift+E)">↔</button>
+    <button class="fmt-btn fmt-text" data-cmd="alignRight"   title="Aligner à droite (Ctrl+Shift+R)">→</button>
+    <button class="fmt-btn fmt-text" data-cmd="alignJustify" title="Justifier (Ctrl+Shift+J)">≡</button>
+  </div>
+
+  <main class="wrapper" id="wrapper">
+
+    <div class="mode-panel active" id="mode-page">
+      <!-- Command-bar cachée — gardée pour le JS, invisible visuellement -->
+      <div class="command-bar" id="commandBar" style="display:none">
+        <span class="command-prefix">!</span>
+        <input type="text" id="commandInput" autocomplete="off" spellcheck="false"/>
+        <span class="command-hint" id="commandHint"></span>
+        <span class="cmd-return"></span>
+      </div>
+
+      <div class="find-bar" id="findBar">
+        <div class="find-bar-inner">
+          <svg class="find-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <input type="text" id="findInput" placeholder="Rechercher…" autocomplete="off" spellcheck="false"/>
+          <span class="find-count" id="findCount"></span>
+          <button class="find-nav-btn" id="findPrev" title="Précédent (Shift+Entrée)">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 7.5l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="find-nav-btn" id="findNext" title="Suivant (Entrée)">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4.5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="find-close-btn" id="findClose" title="Fermer (Esc)">✕</button>
+        </div>
+      </div>
+
+      <div class="document" id="document"></div>
+    </div>
+
+    <div class="mode-panel" id="mode-calendar">
+      <div class="agenda-layout">
+
+        <!-- Toolbar agenda -->
+        <div class="agenda-toolbar">
+          <div class="agenda-nav">
+            <button class="agenda-nav-btn" id="agendaPrev" title="Mois précédent">&#8249;</button>
+            <h2 class="agenda-title" id="agendaTitle">Mai 2026</h2>
+            <button class="agenda-nav-btn" id="agendaNext" title="Mois suivant">&#8250;</button>
+            <button class="agenda-today-btn" id="agendaToday">Aujourd'hui</button>
+
+          </div>
+          <div class="agenda-view-toggle">
+            <button class="agenda-view-btn active" id="agendaViewMonth" data-view="month">Mois</button>
+            <button class="agenda-view-btn" id="agendaViewWeek" data-view="week">Semaine</button>
+          </div>
+        </div>
+
+        <!-- Vue mensuelle -->
+        <div class="agenda-month" id="agendaMonth">
+          <div class="agenda-weekdays">
+            <span>Lun</span><span>Mar</span><span>Mer</span>
+            <span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+          </div>
+          <div class="agenda-grid" id="agendaGrid"></div>
+        </div>
+
+        <!-- Vue hebdomadaire -->
+        <div class="agenda-week" id="agendaWeek" style="display:none">
+          <div class="agenda-week-header" id="agendaWeekHeader"></div>
+          <div class="agenda-week-body" id="agendaWeekBody"></div>
+        </div>
+
+      </div>
+
+      <!-- Panneau récap hebdo -->
+      <div class="agenda-recap" id="agendaRecap">
+        <div class="agenda-recap-header">
+          <span class="agenda-recap-title">Cette semaine</span>
+          <button class="agenda-recap-close" id="agendaRecapClose">
+            <i data-lucide="x" style="width:13px;height:13px"></i>
+          </button>
+        </div>
+
+        <!-- Événements de la semaine -->
+        <div class="recap-section">
+          <p class="recap-section-label">Événements</p>
+          <div class="recap-events" id="recapEvents">
+            <p class="recap-empty">Aucun événement cette semaine</p>
+          </div>
+        </div>
+
+        <!-- Checklist tâches -->
+        <div class="recap-section">
+          <p class="recap-section-label">Tâches</p>
+          <div class="recap-tasks" id="recapTasks"></div>
+          <div class="recap-add-task">
+            <input type="text" class="recap-task-input" id="recapTaskInput" placeholder="Ajouter une tâche…"/>
+            <button class="recap-task-add-btn" id="recapTaskAddBtn">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panneau création/édition événement -->
+      <div class="event-overlay" id="eventOverlay">
+        <div class="event-modal">
+          <div class="event-modal-header">
+            <span class="event-modal-title" id="eventModalTitle">Nouvel événement</span>
+            <button class="event-modal-close" id="eventModalClose">✕</button>
+          </div>
+          <div class="event-modal-body">
+            <input type="text" class="event-input" id="eventTitle" placeholder="Titre de l'événement"/>
+            <div class="event-row">
+              <input type="date" class="event-input event-input-half" id="eventDate"/>
+              <input type="time" class="event-input event-input-half" id="eventTime" value="09:00"/>
+            </div>
+            <div class="event-row">
+              <label class="event-label">Durée</label>
+              <select class="event-input event-input-half" id="eventDuration">
+                <option value="30">30 min</option>
+                <option value="60" selected>1h</option>
+                <option value="90">1h30</option>
+                <option value="120">2h</option>
+                <option value="180">3h</option>
+                <option value="480">Journée</option>
+              </select>
+            </div>
+            <textarea class="event-input event-textarea" id="eventNotes" placeholder="Notes…"></textarea>
+          </div>
+          <div class="event-modal-footer">
+            <button class="event-delete-btn" id="eventDelete" style="display:none">Supprimer</button>
+            <button class="event-cancel-btn" id="eventCancel">Annuler</button>
+            <button class="event-save-btn" id="eventSave">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mode-panel" id="mode-mail">
+      <div class="mail-layout">
+
+        <!-- Colonne gauche : saisie -->
+        <div class="mail-input-col">
+          <div class="mail-input-header">
+            <span class="mail-input-icon">◻</span>
+            <h2 class="mail-input-title">Nouveau mail</h2>
+          </div>
+          <textarea class="mail-prompt" id="mailPrompt"
+            placeholder="Décris ton mail en langage naturel…&#10;ex: Envoie un mail à Sophie pour reporter notre réunion de vendredi à la semaine prochaine, en restant cordial."></textarea>
+          <button class="mail-generate-btn" id="mailGenerateBtn">
+            ✦ Générer le mail
+          </button>
+          <div class="mail-history" id="mailHistory"></div>
+        </div>
+
+        <!-- Colonne droite : prévisualisation -->
+        <div class="mail-preview-col" id="mailPreviewCol">
+          <div class="mail-preview-empty" id="mailPreviewEmpty">
+            <span class="mail-preview-empty-icon">◻</span>
+            <p>Ton mail apparaîtra ici</p>
+          </div>
+          <div class="mail-preview-content" id="mailPreviewContent" style="display:none">
+            <div class="mail-fields">
+              <div class="mail-field-row">
+                <span class="mail-field-label">À</span>
+                <span class="mail-field-value" id="mailTo" contenteditable="true" spellcheck="false"></span>
+              </div>
+              <div class="mail-field-row">
+                <span class="mail-field-label">Objet</span>
+                <span class="mail-field-value" id="mailSubject" contenteditable="true"></span>
+              </div>
+            </div>
+            <div class="mail-body-wrap">
+              <div class="mail-body" id="mailBody" contenteditable="true"></div>
+            </div>
+            <div class="mail-send-bar">
+              <button class="mail-send-btn mail-send-mailto" id="mailSendMailto" title="Ouvrir dans Mail.app">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 4l6 4 6-4" stroke="currentColor" stroke-width="1.3"/></svg>
+                Mail.app
+              </button>
+              <button class="mail-send-btn mail-send-gmail" id="mailSendGmail" title="Ouvrir dans Gmail">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.5 3h11l-5.5 5L1.5 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M1.5 3v8h11V3" stroke="currentColor" stroke-width="1.3"/></svg>
+                Gmail
+              </button>
+              <button class="mail-send-btn mail-send-copy" id="mailSendCopy" title="Copier dans le presse-papiers">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1.5" y="3.5" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3" fill="var(--surface)"/></svg>
+                Copier
+              </button>
+              <button class="mail-clear-btn" id="mailClearBtn">↺ Nouveau</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="mode-panel" id="mode-search"><div class="stub-message">◎ Recherche — prochainement</div></div>
+    <div class="mode-panel" id="mode-cloud"><div class="stub-message">⬡ Nuage — prochainement</div></div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Auto-correcteur IA — bouton marge -->
+  <button class="ai-margin-btn" id="aiMarginBtn" title="Corriger avec l'IA (Ctrl+Shift+A)">✦</button>
+
+  <!-- Panneau IA -->
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-header">
+      <div class="ai-panel-left">
+        <span class="ai-panel-icon">✦</span>
+        <span class="ai-panel-title">Auto-correcteur</span>
+      </div>
+      <button class="ai-panel-close" id="aiPanelClose" title="Fermer">✕</button>
+    </div>
+
+    <!-- Étape 1 : choix du mode -->
+    <div class="ai-step" id="aiStepModes">
+      <p class="ai-step-label">Choisir un mode</p>
+      <div class="ai-modes" id="aiModes">
+        <button class="ai-mode-btn" data-mode="correct">
+          <span class="ai-mode-icon">✓</span>
+          <div>
+            <span class="ai-mode-name">Affiner</span>
+            <span class="ai-mode-desc">Orthographe, grammaire, fluidité</span>
+          </div>
+        </button>
+        <button class="ai-mode-btn" data-mode="rephrase">
+          <span class="ai-mode-icon">↺</span>
+          <div>
+            <span class="ai-mode-name">Réécrire</span>
+            <span class="ai-mode-desc">Plus clair, plus engageant</span>
+          </div>
+        </button>
+        <button class="ai-mode-btn" data-mode="formal">
+          <span class="ai-mode-icon">◈</span>
+          <div>
+            <span class="ai-mode-name">Élever</span>
+            <span class="ai-mode-desc">Registre professionnel</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Étape 2 : masquée — correction directement dans la page -->
+    <div id="aiStepResult" style="display:none">
+      <div id="aiOriginalDisplay"></div>
+      <div id="aiResultLabel"></div>
+      <div id="aiStream"></div>
+      <div id="aiActions" style="display:none">
+        <button id="aiAccept"></button>
+        <button id="aiRefuse"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de confirmation suppression -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <span class="confirm-icon" id="confirmIcon">🗑️</span>
+      <p class="confirm-title" id="confirmTitle">Supprimer ?</p>
+      <p class="confirm-body" id="confirmBody"></p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" id="confirmCancel">Annuler</button>
+        <button class="confirm-delete" id="confirmDelete">Supprimer</button>
+      </div>
+    </div>
+  </div>
+  <div class="focus-bar" id="focusBar">
+    <span class="focus-wordcount" id="focusWordCount">0 mot</span>
+    <span class="focus-hint">Esc pour quitter</span>
+  </div>
+
+  <!-- Panneau préférences -->
+  <div class="prefs-overlay" id="prefsOverlay">
+    <div class="prefs-modal">
+      <p class="prefs-title">⚙ Préférences</p>
+      <div class="prefs-section">
+        <label class="prefs-label">Clé API Anthropic</label>
+        <div class="prefs-api-row">
+          <input type="password" class="prefs-input" id="prefsApiKey" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false"/>
+          <button class="prefs-save-btn" id="prefsApiSave">Enregistrer</button>
+        </div>
+        <p class="prefs-hint">Utilisée pour l'auto-correcteur IA. Jamais partagée.</p>
+      </div>
+      <div class="prefs-section">
+        <label class="prefs-label">Données</label>
+        <button class="prefs-danger-btn" id="prefsClearData">Effacer toutes les données</button>
+      </div>
+      <button class="prefs-close" id="prefsClose">Fermer</button>
+    </div>
+  </div>
+
+  <div class="shortcuts-overlay" id="shortcutsOverlay">
+    <div class="shortcuts-modal">
+      <p class="shortcuts-title">Raccourcis clavier</p>
+      <div class="shortcuts-grid">
+        <div class="sc-row"><div class="sc-keys"><kbd>&gt;</kbd><kbd>Espace</kbd></div><span>Bloc citation</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>+</kbd></div><span>Agrandir le texte</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>−</kbd></div><span>Réduire le texte</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>0</kbd></div><span>Taille par défaut</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>D</kbd></div><span>Mode sombre</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>F</kbd></div><span>Mode focus</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Z</kbd></div><span>Annuler</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Y</kbd></div><span>Rétablir</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>!</kbd></div><span>Commande rapide</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>A</kbd></div><span>Auto-correcteur</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>D</kbd></div><span>Definition du terme entre guillemets</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>8</kbd></div><span>Liste à puces</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>7</kbd></div><span>Liste numérotée</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>J</kbd></div><span>Justifier</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>L</kbd></div><span>Aligner gauche</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>E</kbd></div><span>Centrer</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>R</kbd></div><span>Aligner droite</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>B</kbd></div><span>Gras</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>I</kbd></div><span>Italique</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>1</kbd></div><span>Titre H1</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>2</kbd></div><span>Sous-titre H2</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>P</kbd></div><span>Mode Page</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><span>Mode Agenda</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>M</kbd></div><span>Mode Mail</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>F</kbd></div><span>Rechercher dans la page</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>↑</kbd></div><span>Commande précédente</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span>Fermer / focus page</span></div>
+        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>/</kbd></div><span>Cette aide</span></div>
+      </div>
+      <button id="closeShortcuts">Fermer</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // Initialiser Lucide après le chargement
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
