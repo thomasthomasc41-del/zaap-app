@@ -896,6 +896,33 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeShortcutsModal() { shortcutsOverlay.classList.remove('open'); }
 
   closeShortcuts.addEventListener('click', closeShortcutsModal);
+
+  // Navigation tabs raccourcis
+  var scCurrentTab = 0;
+  var scTotalTabs  = 4;
+
+  function scGoTo(n) {
+    if (n < 0) n = scTotalTabs - 1;
+    if (n >= scTotalTabs) n = 0;
+    scCurrentTab = n;
+    document.querySelectorAll('.sc-tab').forEach(function(t) {
+      t.classList.toggle('active', parseInt(t.dataset.tab) === n);
+    });
+    document.querySelectorAll('.sc-page').forEach(function(p) {
+      p.classList.toggle('active', parseInt(p.dataset.page) === n);
+    });
+    var ind = document.getElementById('scIndicator');
+    if (ind) ind.textContent = (n + 1) + ' / ' + scTotalTabs;
+  }
+
+  document.querySelectorAll('.sc-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() { scGoTo(parseInt(tab.dataset.tab)); });
+  });
+
+  var scPrevBtn = document.getElementById('scPrev');
+  var scNextBtn = document.getElementById('scNext');
+  if (scPrevBtn) scPrevBtn.addEventListener('click', function() { scGoTo(scCurrentTab - 1); });
+  if (scNextBtn) scNextBtn.addEventListener('click', function() { scGoTo(scCurrentTab + 1); });
   openShortcuts.addEventListener('click', openShortcutsModal);
   shortcutsOverlay.addEventListener('click', e => {
     if (e.target === shortcutsOverlay) closeShortcutsModal();
@@ -3187,7 +3214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (defBubble) return;
     defBubble = document.createElement('div');
     defBubble.className = 'def-bubble';
-    defBubble.textContent = '\u1F4D6 Definir';
+    defBubble.textContent = '\uD83D\uDCD6 Definir';
     document.body.appendChild(defBubble);
 
     defBubble.addEventListener('click', async () => {

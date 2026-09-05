@@ -522,38 +522,72 @@
 
   <div class="shortcuts-overlay" id="shortcutsOverlay">
     <div class="shortcuts-modal">
-      <p class="shortcuts-title">Raccourcis clavier</p>
-      <div class="shortcuts-grid">
-        <div class="sc-row"><div class="sc-keys"><kbd>&gt;</kbd><kbd>Espace</kbd></div><span>Bloc citation</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>+</kbd></div><span>Agrandir le texte</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>−</kbd></div><span>Réduire le texte</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>0</kbd></div><span>Taille par défaut</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>D</kbd></div><span>Mode sombre</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>F</kbd></div><span>Mode focus</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Z</kbd></div><span>Annuler</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Y</kbd></div><span>Rétablir</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>!</kbd></div><span>Commande rapide</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>A</kbd></div><span>Auto-correcteur</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>D</kbd></div><span>Definition du terme entre guillemets</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>8</kbd></div><span>Liste à puces</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>7</kbd></div><span>Liste numérotée</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>J</kbd></div><span>Justifier</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>L</kbd></div><span>Aligner gauche</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>E</kbd></div><span>Centrer</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>R</kbd></div><span>Aligner droite</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>B</kbd></div><span>Gras</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>I</kbd></div><span>Italique</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>1</kbd></div><span>Titre H1</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>2</kbd></div><span>Sous-titre H2</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>P</kbd></div><span>Mode Page</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><span>Mode Agenda</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>M</kbd></div><span>Mode Mail</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>F</kbd></div><span>Rechercher dans la page</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>↑</kbd></div><span>Commande précédente</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span>Fermer / focus page</span></div>
-        <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>/</kbd></div><span>Cette aide</span></div>
+
+      <div class="sc-header">
+        <span class="sc-title">Raccourcis clavier</span>
+        <button class="sc-close-btn" id="closeShortcuts">✕</button>
       </div>
-      <button id="closeShortcuts">Fermer</button>
+
+      <div class="sc-tabs">
+        <button class="sc-tab active" data-tab="0">Mise en forme</button>
+        <button class="sc-tab" data-tab="1">IA</button>
+        <button class="sc-tab" data-tab="2">Navigation</button>
+        <button class="sc-tab" data-tab="3">Édition</button>
+      </div>
+
+      <div class="sc-pages">
+
+        <div class="sc-page active" data-page="0">
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>B</kbd></div><span>Gras</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>I</kbd></div><span>Italique</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>1</kbd></div><span>Titre H1</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>2</kbd></div><span>Sous-titre H2</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>&gt;</kbd><kbd>Espace</kbd></div><span>Bloc citation</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>8</kbd></div><span>Liste à puces</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>7</kbd></div><span>Liste numérotée</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>J</kbd></div><span>Justifier</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>L</kbd></div><span>Aligner gauche</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>E</kbd></div><span>Centrer</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>R</kbd></div><span>Aligner droite</span></div>
+        </div>
+
+        <div class="sc-page" data-page="1">
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>A</kbd></div><span>Auto-correcteur IA</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>D</kbd></div><span>Définition entre guillemets</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>!</kbd><kbd>agenda</kbd></div><span>Créer un événement IA</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>!</kbd><kbd>mail</kbd></div><span>Générer un mail IA</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Espace</kbd></div><span>Retourner la fiche de révision</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>←</kbd><kbd>→</kbd></div><span>Naviguer les fiches</span></div>
+        </div>
+
+        <div class="sc-page" data-page="2">
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>P</kbd></div><span>Mode Page</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><span>Mode Agenda</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>M</kbd></div><span>Mode Mail</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>F</kbd></div><span>Rechercher dans la page</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>F</kbd></div><span>Mode focus</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>D</kbd></div><span>Mode sombre</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>/</kbd></div><span>Cette aide</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Esc</kbd></div><span>Fermer / focus page</span></div>
+        </div>
+
+        <div class="sc-page" data-page="3">
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Z</kbd></div><span>Annuler</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Y</kbd></div><span>Rétablir</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>+</kbd></div><span>Agrandir le texte</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>&#8722;</kbd></div><span>Réduire le texte</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>0</kbd></div><span>Taille par défaut</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>!</kbd></div><span>Commande rapide dans le texte</span></div>
+        </div>
+
+      </div>
+
+      <div class="sc-footer">
+        <button class="sc-nav-btn" id="scPrev">←</button>
+        <span class="sc-page-indicator" id="scIndicator">1 / 4</span>
+        <button class="sc-nav-btn" id="scNext">→</button>
+      </div>
+
     </div>
   </div>
 
