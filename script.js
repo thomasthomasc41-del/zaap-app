@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const darkToggleBtn    = document.getElementById('darkToggle');
   // Agenda
   const agendaTitle     = document.getElementById('agendaTitle');
-  // agendaRecap : refs résolues via délégation, pas au chargement
-  // recapEls : résolus dynamiquement (mode agenda display:none au chargement)
+  // agendaRecap : refs r?solues via d?l?gation, pas au chargement
+  // recapEls : r?solus dynamiquement (mode agenda display:none au chargement)
   const agendaGrid      = document.getElementById('agendaGrid');
   const agendaPrevBtn   = document.getElementById('agendaPrev');
   const agendaNextBtn   = document.getElementById('agendaNext');
@@ -74,6 +74,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const mailClearBtn    = document.getElementById('mailClearBtn');
   const mailHistoryEl   = document.getElementById('mailHistory');
   const aiPanelEl         = document.getElementById('aiPanel');
+  const fcPanelEl         = document.getElementById('flashcardPanel');
+  const fcCloseEl         = document.getElementById('flashcardClose');
+  const fcSetupEl         = document.getElementById('flashcardSetup');
+  const fcLoadingEl       = document.getElementById('flashcardLoading');
+  const fcViewEl          = document.getElementById('flashcardView');
+  const fcDoneEl          = document.getElementById('flashcardDone');
+  const fcGenerateEl      = document.getElementById('flashcardGenerate');
+  const fcCounterEl       = document.getElementById('flashcardCounter');
+  const fcFrontEl         = document.getElementById('flashcardFront');
+  const fcBackEl          = document.getElementById('flashcardBack');
+  const fcCardEl          = document.getElementById('flashcardCard');
+  const fcPrevEl          = document.getElementById('flashcardPrev');
+  const fcNextEl          = document.getElementById('flashcardNext');
+  const fcRestartEl       = document.getElementById('flashcardRestart');
+  const openFlashcardsBtn = document.getElementById('openFlashcards');
   const aiPanelClose      = document.getElementById('aiPanelClose');
   const aiModesEl         = document.getElementById('aiModes');
   const aiStepModesEl     = document.getElementById('aiStepModes');
@@ -106,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const confirmCancelBtn = document.getElementById('confirmCancel');
 
   /* ============================================================
-     ÉTAT
+     \u00C9TAT
   ============================================================ */
   let currentMode      = 'page';
   let commandHistory   = [];
@@ -114,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let savedSelection   = null;      // pour format toolbar
   // Pagination visuelle - plus de tableau pages[]
   let pageBreakTimer   = null;
-  const PAGE_H         = 1056;      // hauteur A4 en px (repère visuel uniquement)
+  const PAGE_H         = 1056;      // hauteur A4 en px (rep\u00E8re visuel uniquement)
   const PAGE_PAD_V     = 80;        // padding vertical page-sheet
   const PAGE_PAD_H_VAL = 72;        // padding horizontal (var --page-pad-h)
   let activeDocId      = null;      // id du document actif
@@ -127,24 +142,24 @@ document.addEventListener('DOMContentLoaded', () => {
      STORAGE
   ============================================================ */
   const STORAGE_KEY     = 'zaap_v1';
-  const AUTOSAVE_DELAY  = 1500;     // ms après la dernière frappe
+  const AUTOSAVE_DELAY  = 1500;     // ms apr\u00E8s la derni\u00E8re frappe
   let   autosaveTimer   = null;
   let   saveStatusTimer = null;
 
-  let lastSavedAt   = null;   // timestamp de la dernière sauvegarde réussie
-  let agoTimer      = null;   // rafraîchit "il y a Xs"
+  let lastSavedAt   = null;   // timestamp de la derni\u00E8re sauvegarde r\u00E9ussie
+  let agoTimer      = null;   // rafra\u00EEchit "il y a Xs"
 
   function setSaveStatus(state, text) {
     clearTimeout(saveStatusTimer);
     clearTimeout(agoTimer);
 
     saveStatusEl.className = 'save-status ' + state;
-    // Dot animé + texte
+    // Dot anim? + texte
     saveStatusEl.innerHTML = `<span class="save-dot"></span><span>${text}</span>`;
 
     if (state === 'saved') {
       lastSavedAt = Date.now();
-      // Démarrer le rafraîchissement "il y a Xs"
+      // D?marrer le rafra?chissement "il y a Xs"
       startAgoRefresh();
       saveStatusTimer = setTimeout(() => saveStatusEl.classList.add('fade'), 4000);
     } else if (state === 'restored') {
@@ -159,16 +174,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const ago = formatAgo(lastSavedAt);
       const span = saveStatusEl.querySelector('span:last-child');
       if (span) span.textContent = `OK ${ago}`;
-      if (Date.now() - lastSavedAt < 120000) startAgoRefresh(); // rafraîchir 2min
+      if (Date.now() - lastSavedAt < 120000) startAgoRefresh(); // rafra\u00EEchir 2min
     }, 15000); // toutes les 15s
   }
 
-  // ── Générer un id de document unique ─────────────────────
+  // ?? G?n?rer un id de document unique ?????????????????????
   function genDocId() {
     return 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   }
 
-  // ── Sérialiser le document actif ──────────────────────────
+  // ?? S?rialiser le document actif ??????????????????????????
   function serializeDoc() {
     const titleEl = document.querySelector('.page-title');
     return JSON.stringify({
@@ -179,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Sérialiser la structure sidebar ───────────────────────
+  // ?? S?rialiser la structure sidebar ???????????????????????
   function serializeSidebar() {
     const label = el => el.querySelector('.file-label')?.textContent.trim() || el.textContent.trim();
     const rootFiles = Array.from(rootFileListEl.querySelectorAll('.file')).map(f => ({
@@ -199,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return { workspaceName: workspaceNameEl.textContent.trim() || 'Mon espace', rootFiles, folders };
   }
 
-  // ── Sauvegarder document actif + sidebar ─────────────────
+  // ?? Sauvegarder document actif + sidebar ?????????????????
   function save() {
     try {
       setSaveStatus('saving', 'Sauvegarde...');
@@ -224,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     autosaveTimer = setTimeout(save, AUTOSAVE_DELAY);
   }
 
-  // ── Charger un document dans le DOM ──────────────────────
+  // ?? Charger un document dans le DOM ??????????????????????
   function loadDoc(docId) {
     // Sauvegarder l'actuel avant de switcher
     if (activeDocId && activeDocId !== docId) {
@@ -242,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeDocId = docId;
     initDocument();
 
-    // Charger les données
+    // Charger les donn?es
     let raw;
     try { raw = localStorage.getItem(DOC_PREFIX + docId); } catch(_) {}
 
@@ -253,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     buildToc();
     wrapper.scrollTo(0, 0);
 
-    // Reveal : faire apparaître le document chargé
+    // Reveal : faire appara?tre le document charg?
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         documentEl.style.opacity = '1';
@@ -274,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60);
   }
 
-  // ── Restaurer l'état complet au démarrage ─────────────────
+  // ?? Restaurer l'?tat complet au d?marrage ?????????????????
   function restore() {
     let sidebarRaw;
     try { sidebarRaw = localStorage.getItem(SIDEBAR_KEY); } catch(_) {}
@@ -286,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (oldRaw) {
           const old = JSON.parse(oldRaw);
           if (old && old.v === 1) {
-            // Créer un premier doc avec l'ancien contenu
+            // Cr?er un premier doc avec l'ancien contenu
             const migId = genDocId();
             localStorage.setItem(DOC_PREFIX + migId, JSON.stringify({
               v: 2, savedAt: old.savedAt,
@@ -323,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try { sidebarData = JSON.parse(sidebarRaw); } catch(_) { return false; }
     if (!sidebarData || !sidebarData.folders) return false;
 
-    // Restaurer workspace name + sidebar complète
+    // Restaurer workspace name + sidebar compl?te
     if (sidebarData.workspaceName) workspaceNameEl.textContent = sidebarData.workspaceName;
     rebuildSidebar(sidebarData.rootFiles || [], sidebarData.folders || []);
 
@@ -348,15 +363,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return null;
   }
 
-  // ── Créer un élément folder complet ──────────────────────
+  // ?? Cr?er un ?l?ment folder complet ??????????????????????
   function createFolderEl(name, open) {
     const li = document.createElement('li');
     li.className = 'folder' + (open ? ' open' : '');
     li.innerHTML = `
       <div class="folder-row">
-        <span class="folder-arrow">▸</span>
+        <span class="folder-arrow">\u25B8</span>
         <span class="folder-name" contenteditable="false" spellcheck="false">${escapeHtml(name)}</span>
-        <button class="ctx-trigger folder-ctx" title="Options" tabindex="-1">…</button>
+        <button class="ctx-trigger folder-ctx" title="Options" tabindex="-1">\u2026</button>
       </div>
       <ul class="file-list"></ul>
       <button class="new-file-button">+ Nouvelle feuille</button>`;
@@ -371,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return li;
   }
 
-  // ── Supprimer un dossier et tous ses fichiers ─────────────
+  // ?? Supprimer un dossier et tous ses fichiers ?????????????
   function deleteFolder(folderLi) {
     const wasActiveInside = !!folderLi.querySelector('.file.active');
 
@@ -422,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return `il y a ${Math.round(diff/3600)}h`;
   }
 
-  // ── Ctrl+S manuel ─────────────────────────────────────────
+  // ?? Ctrl+S manuel ?????????????????????????????????????????
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
@@ -434,14 +449,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ============================================================
      UNDO / REDO
-     Stratégie : un historique par zone éditable (title + textBoxes).
-     Chaque entrée = { html, cursorPath, cursorOffset }.
+     Strat\u00E9gie : un historique par zone \u00E9ditable (title + textBoxes).
+     Chaque entr\u00E9e = { html, cursorPath, cursorOffset }.
      Snapshot pris :
-       - 400 ms après la dernière frappe (debounce)
-       - avant chaque opération de formatage
+       - 400 ms apr\u00E8s la derni\u00E8re frappe (debounce)
+       - avant chaque op\u00E9ration de formatage
        - avant chaque commande qui modifie le DOM
-     Ctrl+Z / Ctrl+Y interceptés en phase capture pour court-circuiter
-     le comportement natif du navigateur (très incohérent sur contenteditable).
+     Ctrl+Z / Ctrl+Y intercept\u00E9s en phase capture pour court-circuiter
+     le comportement natif du navigateur (tr\u00E8s incoh\u00E9rent sur contenteditable).
   ============================================================ */
   const UNDO_LIMIT = 200;   // max snapshots par zone
   const SNAP_DELAY = 400;   // ms debounce
@@ -456,9 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return undoMap.get(el);
   }
 
-  // ── Sérialiser la position du curseur ─────────────────────
-  // On encode le chemin depuis la zone racine : [childIndex, childIndex, …]
-  // + offset dans le nœud texte final.
+  // ?? S?rialiser la position du curseur ?????????????????????
+  // On encode le chemin depuis la zone racine : [childIndex, childIndex, ?]
+  // + offset dans le n?ud texte final.
   function getCursorPath(root) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
@@ -494,13 +509,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return cur;
   }
 
-  // ── Prendre un snapshot ────────────────────────────────────
+  // ?? Prendre un snapshot ????????????????????????????????????
   function snapshot(el) {
     if (!el || !el.isConnected) return;
     const state = getUndoState(el);
     const html  = el.innerHTML;
 
-    // Dédupliquer : si identique au sommet, ne rien faire
+    // D?dupliquer : si identique au sommet, ne rien faire
     if (state.pointer >= 0 && state.stack[state.pointer].html === html) return;
 
     // Tronquer le futur si on est au milieu de l'historique
@@ -514,14 +529,14 @@ document.addEventListener('DOMContentLoaded', () => {
     state.pointer = state.stack.length - 1;
   }
 
-  // ── Snapshot debounced (après frappe) ─────────────────────
+  // ?? Snapshot debounced (apr?s frappe) ?????????????????????
   function scheduleSnapshot(el) {
     const state = getUndoState(el);
     clearTimeout(state.snapTimer);
     state.snapTimer = setTimeout(() => snapshot(el), SNAP_DELAY);
   }
 
-  // ── Snapshot immédiat (avant formatage) ───────────────────
+  // ?? Snapshot imm?diat (avant formatage) ???????????????????
   function snapshotNow(el) {
     if (!el) return;
     const state = getUndoState(el);
@@ -529,14 +544,14 @@ document.addEventListener('DOMContentLoaded', () => {
     snapshot(el);
   }
 
-  // ── Appliquer un snapshot ─────────────────────────────────
+  // ?? Appliquer un snapshot ?????????????????????????????????
   function applySnapshot(el, entry) {
     el.innerHTML = entry.html;
     if (entry.cursor) restoreCursorPath(el, entry.cursor);
-    // Déclencher les side-effects habituels
+    // D?clencher les side-effects habituels
     updateWordCount();
     scheduleAutosave();
-    // Ne pas re-déclencher handleOverflow ici (innerHTML déjà correct)
+    // Ne pas re-d?clencher handleOverflow ici (innerHTML d?j? correct)
   }
 
   function restoreCursorPath(root, cursor) {
@@ -552,10 +567,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (_) { /* cursor restore best-effort */ }
   }
 
-  // ── Undo ──────────────────────────────────────────────────
+  // ?? Undo ??????????????????????????????????????????????????
   function undo(el) {
     const state = getUndoState(el);
-    // Snapshot l'état courant si on est tout en haut (première annulation)
+    // Snapshot l'?tat courant si on est tout en haut (premi?re annulation)
     if (state.pointer === state.stack.length - 1) {
       snapshot(el);
     }
@@ -566,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  // ── Redo ──────────────────────────────────────────────────
+  // ?? Redo ??????????????????????????????????????????????????
   function redo(el) {
     const state = getUndoState(el);
     if (state.pointer >= state.stack.length - 1) return false;
@@ -576,22 +591,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  // ── Trouver la zone active (title ou textBox) ──────────────
+  // ?? Trouver la zone active (title ou textBox) ??????????????
   function activeEditableZone() {
     const active = document.activeElement;
     if (!active) return null;
     if (active.classList.contains('page-title') || active.classList.contains('textBox')) {
       return active;
     }
-    // Chercher un ancêtre éditable zaap
+    // Chercher un anc?tre ?ditable zaap
     return active.closest('.page-title, .textBox');
   }
 
-  // ── Feedback visuel flash ──────────────────────────────────
+  // ?? Feedback visuel flash ??????????????????????????????????
   let undoFlashTimer;
   function flashUndoIndicator(symbol) {
     clearTimeout(undoFlashTimer);
-    // Flash discret sans passer par setSaveStatus (évite de reset lastSavedAt)
+    // Flash discret sans passer par setSaveStatus (?vite de reset lastSavedAt)
     const dot  = saveStatusEl.querySelector('.save-dot');
     const span = saveStatusEl.querySelector('span:last-child');
     const prevClass = saveStatusEl.className;
@@ -604,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 600);
   }
 
-  // selectionchange global : couvre les sélections au clavier et Ctrl+A
+  // selectionchange global : couvre les s?lections au clavier et Ctrl+A
   document.addEventListener('selectionchange', () => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return;
@@ -616,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Intercepter Ctrl+Z / Ctrl+Y en capture ────────────────
+  // ?? Intercepter Ctrl+Z / Ctrl+Y en capture ????????????????
   document.addEventListener('keydown', e => {
     const ctrl = e.ctrlKey || e.metaKey;
     if (!ctrl) return;
@@ -625,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const y = e.key.toLowerCase() === 'y';
     if (!z && !y) return;
 
-    // Ne pas interférer avec commandInput (texte simple)
+    // Ne pas interf?rer avec commandInput (texte simple)
     if (document.activeElement === commandInput) return;
 
     const zone = activeEditableZone();
@@ -637,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (z && !e.shiftKey) undo(zone);
     if ((z && e.shiftKey) || y) redo(zone);
 
-  }, true); // capture → avant tous les autres listeners
+  }, true); // capture \u2192 avant tous les autres listeners
 
   /* ============================================================
      TAILLE DE POLICE
@@ -658,16 +673,16 @@ document.addEventListener('DOMContentLoaded', () => {
       '--font-size-body', currentFontSize + 'px'
     );
 
-    // Mettre à jour l'affichage (entier si .0)
+    // Mettre ? jour l'affichage (entier si .0)
     const display = Number.isInteger(currentFontSize)
       ? String(currentFontSize)
       : currentFontSize.toFixed(1);
     fsValueEl.textContent = display;
 
-    // Indiquer visuellement si différent du défaut
+    // Indiquer visuellement si diff?rent du d?faut
     fsValueEl.classList.toggle('changed', currentFontSize !== FS_DEFAULT);
 
-    // Désactiver les boutons aux limites
+    // D?sactiver les boutons aux limites
     fsDownBtn.disabled = currentFontSize <= FS_MIN;
     fsUpBtn.disabled   = currentFontSize >= FS_MAX;
 
@@ -728,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   darkToggleBtn.addEventListener('click', toggleDark);
 
-  // Restaurer la préférence sauvegardée
+  // Restaurer la pr?f?rence sauvegard?e
   try {
     const saved = localStorage.getItem(DARK_KEY);
     if (saved === '1') setDark(true);
@@ -739,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
      EXPORT PDF
   ============================================================ */
   function exportPdf() {
-    // Définir le titre de la fenêtre = titre du doc (pour le nom du fichier)
+    // D?finir le titre de la fen?tre = titre du doc (pour le nom du fichier)
     const docTitle = titleEl ? titleEl.textContent.trim() : 'Zaap';
     const prevTitle = document.title;
     document.title = docTitle || 'Zaap';
@@ -788,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ============================================================ */
   toggleBtn.addEventListener('click', () => {
     sidebar.classList.toggle('closed');
-    // Le CSS gère le left via sibling selector
+    // Le CSS g?re le left via sibling selector
   });
 
   /* ============================================================
@@ -811,7 +826,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     const ctrl = e.ctrlKey || e.metaKey;
 
-    // Esc — toujours actif même en répétition
+    // Esc ? toujours actif m?me en r?p?tition
     if (e.key === 'Escape') {
       if (shortcutsOverlay.classList.contains('open')) { closeShortcutsModal(); return; }
       if (prefsOverlay.classList.contains('open'))    { closePrefsModal(); return; }
@@ -820,8 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Ignorer les répétitions pour tous les raccourcis clavier
-    // (évite de déclencher Ctrl+B 20 fois si on maintient les touches)
+    // Ignorer les r?p?titions pour tous les raccourcis clavier
+    // (?vite de d?clencher Ctrl+B 20 fois si on maintient les touches)
     if (e.repeat) return;
 
     if (ctrl && e.key === '/')       { e.preventDefault(); openShortcutsModal(); return; }
@@ -939,14 +954,14 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ============================================================
      DOCUMENT - ZONE UNIQUE + PAGINATION VISUELLE
      Une seule page-sheet, un seul textBox.
-     Les page-break sont des <hr contenteditable=false> insérés
-     après la frappe (debounce) pour marquer les coupures visuelles.
-     JAMAIS de déplacement de nœuds pendant la frappe.
+     Les page-break sont des <hr contenteditable=false> ins\u00E9r\u00E9s
+     apr\u00E8s la frappe (debounce) pour marquer les coupures visuelles.
+     JAMAIS de d\u00E9placement de n\u0153uds pendant la frappe.
   ============================================================ */
 
   let sheetEl  = null;   // la page-sheet unique
   let textBox  = null;   // le textBox unique
-  let titleEl  = null;   // le titre de la première page
+  let titleEl  = null;   // le titre de la premi\u00E8re page
 
   function initDocument() {
     documentEl.innerHTML = '';
@@ -1017,7 +1032,7 @@ document.addEventListener('DOMContentLoaded', () => {
     attachDeleteAcceleration(textBox);
     attachDefinitionTrigger(textBox);
 
-    // Suppression des blocs définition via mousedown (plus fiable que click sur contenteditable=false)
+    // Suppression des blocs d?finition via mousedown (plus fiable que click sur contenteditable=false)
     textBox.addEventListener('mousedown', e => {
       const delBtn = e.target.closest('.definition-delete');
       if (!delBtn) return;
@@ -1030,23 +1045,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Init des repères CSS - attendre que le DOM soit peint
+    // Init des rep?res CSS - attendre que le DOM soit peint
     requestAnimationFrame(() => requestAnimationFrame(updateRulerVars));
   }
 
-  /* ── Repères de page CSS (zéro DOM, zéro JS pendant frappe) ───
+  /* ?? Rep?res de page CSS (z?ro DOM, z?ro JS pendant frappe) ???
      On calcule juste les variables CSS --page-ruler-offset et
      --page-ruler-repeat sur la page-sheet.
      offset = PAGE_PAD_V + hauteur du bloc titre
      repeat = PAGE_H - 2 * PAGE_PAD_V (hauteur utile d'une page)
-  ────────────────────────────────────────────────────────── */
+  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
   function schedulePageBreaks() {
     clearTimeout(pageBreakTimer);
     pageBreakTimer = setTimeout(updateRulerVars, 100);
   }
 
-  const RULER_GAP  = 24;  // espace de chaque côté de la ligne (px)
-  const LINE_H     = 1;   // épaisseur de la ligne (px)
+  const RULER_GAP  = 24;  // espace de chaque c\u00F4t\u00E9 de la ligne (px)
+  const LINE_H     = 1;   // \u00E9paisseur de la ligne (px)
   const SPACER_H   = RULER_GAP * 2 + LINE_H; // hauteur totale du spacer
 
   // Hauteur utile de la page 1 (depuis le haut du textBox)
@@ -1054,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!titleEl) return PAGE_H - 2 * PAGE_PAD_V;
     let titleH = titleEl.offsetHeight;
     // Fallback robuste : si vide ou pas encore rendu, estimer sur 1 ligne minimum
-    if (titleH < 20) titleH = Math.ceil(42 * 1.12); // 1 ligne de titre à 42px
+    if (titleH < 20) titleH = Math.ceil(42 * 1.12); // 1 ligne de titre \u00E0 42px
     // Si le titre fait plusieurs lignes, on prend la vraie hauteur
     const titleBlockH = titleH + 2 + 32; // titre + sep(2px) + margin-bottom(32px)
     return PAGE_H - 2 * PAGE_PAD_V - titleBlockH;
@@ -1071,7 +1086,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const p1H = getPage1Height();
     const pNH = getPageNHeight();
 
-    // 1. Mettre à jour les variables CSS pour la ligne visuelle
+    // 1. Mettre ? jour les variables CSS pour la ligne visuelle
     //    offset = PAD_V + titleBlock + p1H + GAP (juste avant la ligne)
     let titleH = titleEl.offsetHeight;
     if (titleH < 20) titleH = Math.ceil(42 * 1.12);
@@ -1084,18 +1099,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Injecter les spacers dans le textBox
     injectSpacers(p1H, pNH);
 
-    // 3. Mettre à jour les numéros de page
+    // 3. Mettre ? jour les num?ros de page
     updatePageNumbers(offsetFromTop + LINE_H / 2, pNH + SPACER_H);
   }
 
-  // ── Spacers non-éditables qui poussent le texte ─────────────
-  // Principe : on parcourt les blocs du textBox et on insère des
-  // spacers là où le texte dépasserait la hauteur de page.
-  // Les spacers sont retirés et recalculés à chaque appel.
+  // ?? Spacers non-?ditables qui poussent le texte ?????????????
+  // Principe : on parcourt les blocs du textBox et on ins?re des
+  // spacers l? o? le texte d?passerait la hauteur de page.
+  // Les spacers sont retir?s et recalcul?s ? chaque appel.
   function injectSpacers(p1H, pNH) {
     if (!textBox) return;
 
-    // Sauvegarder la sélection
+    // Sauvegarder la s?lection
     const sel    = window.getSelection();
     const savedR = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
 
@@ -1113,9 +1128,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (child.classList.contains('page-spacer')) continue;
       const childH = child.offsetHeight || 0;
 
-      // Ce bloc déborde la page courante ?
+      // Ce bloc d?borde la page courante ?
       if (cumH + childH > pageLimit && cumH > 0) {
-        // Calculer le padding nécessaire pour aligner la coupure
+        // Calculer le padding n?cessaire pour aligner la coupure
         const remaining = pageLimit - cumH; // espace restant avant la ligne
         const spacer = createSpacer(remaining);
         spacer.dataset.pageNum = pageNum + 1;
@@ -1127,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cumH += childH;
     }
 
-    // Restaurer la sélection
+    // Restaurer la s?lection
     if (savedR) {
       try {
         const s = window.getSelection();
@@ -1149,9 +1164,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updatePageNumbers(offset, repeat) {
-    // Retirer les anciens labels absolus (remplacés par ::before sur les spacers)
+    // Retirer les anciens labels absolus (remplac?s par ::before sur les spacers)
     sheetEl.querySelectorAll('.page-num-label').forEach(l => l.remove());
-    // Mettre à jour les data-page-num sur les spacers existants
+    // Mettre ? jour les data-page-num sur les spacers existants
     let pageNum = 2;
     textBox.querySelectorAll('.page-spacer').forEach(s => {
       s.dataset.pageNum = pageNum++;
@@ -1159,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  /* ── Sérialiser / restaurer le document ────────────────────
+  /* ?? S?rialiser / restaurer le document ????????????????????
      Plus de tableau pages[] - juste titleEl + textBox          */
   function serializeDoc() {
     return JSON.stringify({
@@ -1176,7 +1191,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!data || data.v !== 1) return;
     if (titleEl  && data.title   != null) {
       titleEl.innerHTML = data.title;
-      // S'assurer que la classe est bien là (robustesse)
+      // S'assurer que la classe est bien l? (robustesse)
       titleEl.className = 'page-title';
     }
     if (textBox  && data.content != null) textBox.innerHTML   = data.content;
@@ -1189,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (lbl) lbl.textContent = val; else active.textContent = val;
     }
     updateWordCount();
-    // Attendre le rendu avant de calculer les repères
+    // Attendre le rendu avant de calculer les rep?res
     requestAnimationFrame(() => requestAnimationFrame(updateRulerVars));
   }
 
@@ -1207,7 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateWordCount();
   }
 
-  /* ── Compat : updateWordCount utilise textBox directement ─ */
+  /* ?? Compat : updateWordCount utilise textBox directement ? */
 
   function placeCursorAtEnd(el) {
     el.focus();
@@ -1230,7 +1245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const anchor = sel.anchorNode;
     if (!anchor) return;
     let node = anchor.nodeType === 3 ? anchor.parentNode : anchor;
-    // Autoriser la sélection dans textBox ET dans les li (listes)
+    // Autoriser la s?lection dans textBox ET dans les li (listes)
     const inEditable = node.closest('.textBox') || node.closest('.page-title');
     if (!inEditable) {
       hideFormatToolbar();
@@ -1246,7 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbW   = formatToolbar.offsetWidth || 200;
 
     let left = rect.left + rect.width / 2 - tbW / 2;
-    let top  = rect.top - 46; // au-dessus de la sélection
+    let top  = rect.top - 46; // au-dessus de la s\u00E9lection
 
     // Clamper horizontalement
     left = Math.max(8, Math.min(left, window.innerWidth - tbW - 8));
@@ -1262,19 +1277,19 @@ document.addEventListener('DOMContentLoaded', () => {
     formatToolbar.classList.remove('visible');
   }
 
-  // stopPropagation sur la toolbar : empêche le listener document de la masquer
+  // stopPropagation sur la toolbar : emp?che le listener document de la masquer
   formatToolbar.addEventListener('mousedown', e => {
     e.stopPropagation();
     const btn = e.target.closest('.fmt-btn');
     if (!btn) return;
-    e.preventDefault();           // garde la sélection intacte
+    e.preventDefault();           // garde la s\u00E9lection intacte
     restoreSelection(savedSelection);
     snapshotNow(activeEditableZone());
     applyFormat(btn.dataset.cmd);
     setTimeout(checkSelection, 10);
   });
 
-  // mousedown : masquer la toolbar seulement si on clique hors zone éditable ET hors toolbar
+  // mousedown : masquer la toolbar seulement si on clique hors zone ?ditable ET hors toolbar
   document.addEventListener('mousedown', e => {
     const inEditable = e.target.closest('.textBox') || e.target.closest('.page-title');
     const inToolbar  = e.target.closest('.format-toolbar');
@@ -1307,9 +1322,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     FORMAT INLINE - bold / italic sans sélection
-     Si du texte est sélectionné : execCommand standard.
-     Si curseur seul (collapsed) : on bascule un état "pending"
+     FORMAT INLINE - bold / italic sans s\u00E9lection
+     Si du texte est s\u00E9lectionn\u00E9 : execCommand standard.
+     Si curseur seul (collapsed) : on bascule un \u00E9tat "pending"
      qui enveloppe la prochaine frappe dans <b> ou <i>.
   ============================================================ */
   const pendingFormats = new Set(); // 'bold' | 'italic'
@@ -1320,11 +1335,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const hasSelection = sel && !sel.isCollapsed && sel.toString().trim() !== '';
 
       if (hasSelection) {
-        // Comportement standard : toggle sur la sélection
+        // Comportement standard : toggle sur la s?lection
         document.execCommand(cmd);
         updateFmtActiveStates();
       } else {
-        // Pas de sélection : basculer l'état pending
+        // Pas de s?lection : basculer l'?tat pending
         togglePendingFormat(cmd);
       }
       return;
@@ -1369,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     PENDING FORMATS - gras/italique sans sélection
+     PENDING FORMATS - gras/italique sans s\u00E9lection
   ============================================================ */
 
   function togglePendingFormat(cmd) {
@@ -1379,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pendingFormats.add(cmd);
     }
     updatePendingIndicator();
-    // Redonner le focus à la zone active pour que la prochaine frappe atterrisse bien
+    // Redonner le focus ? la zone active pour que la prochaine frappe atterrisse bien
     const zone = activeEditableZone();
     if (zone) zone.focus();
   }
@@ -1389,12 +1404,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePendingIndicator();
   }
 
-  // Indicateur visuel sur les boutons de la toolbar même sans sélection
+  // Indicateur visuel sur les boutons de la toolbar m?me sans s?lection
   function updatePendingIndicator() {
     document.querySelectorAll('.fmt-btn').forEach(btn => {
       const cmd = btn.dataset.cmd;
       if (cmd === 'bold' || cmd === 'italic') {
-        // Allumé si pending OU si queryCommandState le dit
+        // Allum? si pending OU si queryCommandState le dit
         let fromCmd = false;
         try { fromCmd = document.queryCommandState(cmd); } catch(_) {}
         btn.classList.toggle('active', pendingFormats.has(cmd) || fromCmd);
@@ -1402,28 +1417,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Intercepter chaque frappe dans les zones éditables pour appliquer
-  // les formats pending sur le caractère nouvellement tapé.
+  // Intercepter chaque frappe dans les zones ?ditables pour appliquer
+  // les formats pending sur le caract?re nouvellement tap?.
   function attachPendingFormatHandler(el) {
     el.addEventListener('keydown', e => {
-      // Ne traiter que les frappes qui produisent un caractère
+      // Ne traiter que les frappes qui produisent un caract?re
       if (pendingFormats.size === 0) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key.length !== 1) return; // Ignorer Enter, Backspace, flèches…
+      if (e.key.length !== 1) return; // Ignorer Enter, Backspace, fl\u00E8ches\u2026
 
       e.preventDefault();
       const char = e.key;
 
-      // Construire la chaîne de balises selon les formats actifs
-      // Ordre : b > i (pour correspondre au comportement des éditeurs)
+      // Construire la cha?ne de balises selon les formats actifs
+      // Ordre : b > i (pour correspondre au comportement des ?diteurs)
       let html = escapeHtmlChar(char);
       if (pendingFormats.has('italic')) html = `<em>${html}</em>`;
       if (pendingFormats.has('bold'))   html = `<strong>${html}</strong>`;
 
-      // Insérer via execCommand pour rester dans l'historique undo natif
+      // Ins?rer via execCommand pour rester dans l'historique undo natif
       document.execCommand('insertHTML', false, html);
 
-      // Vider les formats pending après la première frappe
+      // Vider les formats pending apr?s la premi?re frappe
       clearPendingFormats();
       scheduleSnapshot(el);
     });
@@ -1446,19 +1461,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const node   = sel.anchorNode;
     const parent = node.nodeType === 3 ? node.parentElement : node;
     const inBq   = parent.closest('blockquote');
-    // Toggle : si déjà dans un blockquote → revenir en div, sinon → blockquote
+    // Toggle : si d?j? dans un blockquote ? revenir en div, sinon ? blockquote
     document.execCommand('formatBlock', false, inBq ? 'div' : 'blockquote');
   }
 
-  // ── Déclencheur "> espace" ────────────────────────────────
-  // Branché sur chaque textBox dans createPage via attachQuoteTrigger()
+  // ?? D?clencheur "> espace" ????????????????????????????????
+  // Branch? sur chaque textBox dans createPage via attachQuoteTrigger()
   function attachQuoteTrigger(textBox) {
     textBox.addEventListener('keydown', e => {
       if (e.key !== ' ') return;
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
 
-      // Pas de déclenchement si déjà dans un blockquote
+      // Pas de d?clenchement si d?j? dans un blockquote
       const anchor = sel.anchorNode;
       const el     = anchor.nodeType === 3 ? anchor.parentElement : anchor;
       if (el.closest('blockquote')) return;
@@ -1468,11 +1483,11 @@ document.addEventListener('DOMContentLoaded', () => {
       let textBefore = '';
       try {
         const r = document.createRange();
-        // Chercher le nœud texte le plus proche en début de bloc
+        // Chercher le n?ud texte le plus proche en d?but de bloc
         let cur = anchor;
         while (cur && cur.parentElement !== textBox) cur = cur.parentElement;
         if (!cur) return;
-        // Récupérer tout le texte depuis le début du bloc parent jusqu'au curseur
+        // R?cup?rer tout le texte depuis le d?but du bloc parent jusqu'au curseur
         const tmp = document.createRange();
         tmp.setStartBefore(cur.parentElement === textBox ? cur : textBox.firstChild || cur);
         tmp.setEnd(range.startContainer, range.startOffset);
@@ -1488,8 +1503,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Effacer le ">" via execCommand puis appliquer blockquote
       document.execCommand('selectAll', false);
-      // Sélectionner uniquement le bloc courant : plus simple via formatBlock direct
-      // D'abord supprimer le ">" : sélectionner depuis le début du nœud texte
+      // S?lectionner uniquement le bloc courant : plus simple via formatBlock direct
+      // D'abord supprimer le ">" : s?lectionner depuis le d?but du n?ud texte
       try {
         const delRange = document.createRange();
         delRange.setStart(range.startContainer, range.startOffset - 1);
@@ -1503,7 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
       scheduleSnapshot(textBox);
     });
 
-    // ── Entrée dans un blockquote vide → sortir ───────────
+    // ?? Entr?e dans un blockquote vide ? sortir ???????????
     textBox.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       const sel = window.getSelection();
@@ -1525,7 +1540,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  /* Save/restore selection (pour ne pas perdre après mousedown sur toolbar) */
+  /* Save/restore selection (pour ne pas perdre apr?s mousedown sur toolbar) */
   function saveSelection() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
@@ -1541,10 +1556,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     DÉTECTION COMMANDE ! DANS LE TEXTE
-     Quand une ligne commence par !, elle reçoit la classe
-     cmd-preview (style citation orange). Sur Entrée, la ligne
-     est exécutée comme commande puis supprimée avec un fondu.
+     D\u00C9TECTION COMMANDE ! DANS LE TEXTE
+     Quand une ligne commence par !, elle re\u00E7oit la classe
+     cmd-preview (style citation orange). Sur Entr\u00E9e, la ligne
+     est ex\u00E9cut\u00E9e comme commande puis supprim\u00E9e avec un fondu.
   ============================================================ */
   function attachInlineCommandDetection(textBox) {
     textBox.addEventListener('input', () => {
@@ -1566,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       snapshotNow(textBox);
 
-      // Effet de disparition puis exécution
+      // Effet de disparition puis ex?cution
       line.classList.add('executed');
       setTimeout(() => {
         line.remove();
@@ -1587,8 +1602,8 @@ document.addEventListener('DOMContentLoaded', () => {
         line.classList.remove('cmd-preview');
       }
     });
-    // Cas d'un nœud texte direct (première frappe)
-    // Pas de div encore - on ignore, sera géré à la prochaine normalisation
+    // Cas d'un n?ud texte direct (premi?re frappe)
+    // Pas de div encore - on ignore, sera g?r? ? la prochaine normalisation
   }
 
   /* ============================================================
@@ -1631,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (/mail|envoie/.test(lower)) {
       switchMode('mail');
-      // Pré-remplir le prompt avec la commande
+      // Pr?-remplir le prompt avec la commande
       if (mailPromptEl) {
         mailPromptEl.value = raw.replace(/^!/, '').trim();
         setTimeout(() => triggerMailGeneration(), 100);
@@ -1646,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Insérer dans la page comme note
+    // Ins?rer dans la page comme note
     appendToPage(raw.replace(/^!/, '').trim());
     showToast('Note ajoutee a la page');
   }
@@ -1677,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmBody.innerHTML    = body;
     confirmCallback          = onConfirm;
     confirmOverlay.classList.add('open');
-    // Focus sur "Annuler" par défaut - plus sûr
+    // Focus sur "Annuler" par d?faut - plus s?r
     setTimeout(() => confirmCancelBtn.focus(), 50);
   }
 
@@ -1705,8 +1720,8 @@ document.addEventListener('DOMContentLoaded', () => {
      SIDEBAR - DOSSIERS & FICHIERS
   ============================================================ */
 
-  // ── Renommage d'un élément (fichier ou dossier) ───────────
-  // Passe en mode édition, valide sur Enter/blur, annule sur Esc.
+  // ?? Renommage d'un ?l?ment (fichier ou dossier) ???????????
+  // Passe en mode ?dition, valide sur Enter/blur, annule sur Esc.
   function startRename(el, onCommit) {
     if (el.dataset.renaming) return;
     el.dataset.renaming = '1';
@@ -1716,7 +1731,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const original = el.textContent.trim();
 
-    // Focus + sélection dans le prochain tick pour laisser le DOM se stabiliser
+    // Focus + s?lection dans le prochain tick pour laisser le DOM se stabiliser
     setTimeout(() => {
       el.focus();
       try {
@@ -1728,7 +1743,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 20);
 
     function commit() {
-      if (!el.dataset.renaming) return; // déjà commité
+      if (!el.dataset.renaming) return; // d\u00E9j\u00E0 commit\u00E9
       const val = el.textContent.trim();
       el.contentEditable = 'false';
       el.classList.remove('renaming');
@@ -1761,8 +1776,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Délai sur le blur handler pour éviter un commit immédiat
-    // si le focus n'a pas encore atterri sur l'élément
+    // D?lai sur le blur handler pour ?viter un commit imm?diat
+    // si le focus n'a pas encore atterri sur l'?l?ment
     function blurHandler() {
       el.removeEventListener('blur', blurHandler);
       if (el.dataset.renaming) commit();
@@ -1770,7 +1785,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => el.addEventListener('blur', blurHandler), 80);
   }
 
-  // ── Créer un fichier lié à un docId ─────────────────────
+  // ?? Cr?er un fichier li? ? un docId ?????????????????????
   function createFileItem(name, active, docId) {
     const id = docId || genDocId();
     const li = document.createElement('li');
@@ -1784,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', () => {
     label.textContent = name;
     li.appendChild(label);
 
-    // Bouton ✕ supprimer - visible au survol
+    // Bouton ? supprimer - visible au survol
     const delBtn = document.createElement('button');
     delBtn.className   = 'file-delete-btn';
     delBtn.textContent = '\u2715';
@@ -1792,7 +1807,7 @@ document.addEventListener('DOMContentLoaded', () => {
     delBtn.tabIndex    = -1;
     li.appendChild(delBtn);
 
-    // Clic sur le li (hors ✕) → activer
+    // Clic sur le li (hors ?) ? activer
     li.addEventListener('click', e => {
       if (e.target === delBtn) return;
       if (li.dataset.renaming) return;
@@ -1803,7 +1818,7 @@ document.addEventListener('DOMContentLoaded', () => {
       saveSidebarOnly();
     });
 
-    // Double-clic sur le label → renommer directement
+    // Double-clic sur le label ? renommer directement
     label.addEventListener('dblclick', e => {
       e.stopPropagation();
       startRenameLabel(li, label, newName => {
@@ -1812,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Clic ✕ → confirmer suppression
+    // Clic ? ? confirmer suppression
     delBtn.addEventListener('click', e => {
       e.stopPropagation();
       const name = label.textContent.trim();
@@ -1860,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', () => {
     label.addEventListener('blur', b);
   }
 
-  // ── Supprimer un fichier ──────────────────────────────────
+  // ?? Supprimer un fichier ??????????????????????????????????
   function deleteFile(li) {
     const docId   = li.dataset.docId;
     const wasActive = li.classList.contains('active');
@@ -1894,7 +1909,7 @@ document.addEventListener('DOMContentLoaded', () => {
           anyFile.classList.add('active');
           loadDoc(anyFile.dataset.docId);
         } else {
-          // Sidebar vide → créer un nouveau doc vierge
+          // Sidebar vide ? cr?er un nouveau doc vierge
           createFirstDoc();
         }
       }
@@ -1923,7 +1938,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_) {}
   }
 
-  // Nettoyer les fichiers statiques du HTML (recréés par restore/INIT)
+  // Nettoyer les fichiers statiques du HTML (recr??s par restore/INIT)
   rootFileListEl.querySelectorAll('.file').forEach(f => f.remove());
   folderList.querySelectorAll('.file').forEach(f => f.remove());
 
@@ -1946,14 +1961,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (lbl) startRenameLabel(li, lbl, () => saveSidebarOnly());
       return;
     }
-    // Toggle dossier (clic sur la row, hors bouton …)
+    // Toggle dossier (clic sur la row, hors bouton ?)
     const row = e.target.closest('.folder-row');
     if (row && !e.target.closest('.folder-name[data-renaming]') && !e.target.closest('.ctx-trigger')) {
       row.closest('.folder').classList.toggle('open');
     }
   });
 
-  // Double-clic folder-name → renommer
+  // Double-clic folder-name ? renommer
   folderList.addEventListener('dblclick', e => {
     const fn = e.target.closest('.folder-name');
     if (!fn) return;
@@ -1961,7 +1976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startRename(fn, name => { showToast(`Dossier : ${name}`); saveSidebarOnly(); });
   }, true);
 
-  // ── MENU CONTEXTUEL ───────────────────────────────────────
+  // ?? MENU CONTEXTUEL ???????????????????????????????????????
   let ctxTarget  = null;
   let ctxKind    = null;
   let ctxTrigger = null;
@@ -1984,13 +1999,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const lbl = target.querySelector('.file-label');
         if (lbl) startRenameLabel(target, lbl, name => { showToast(`Renomm\u00E9 : ${name}`); saveSidebarOnly(); });
       });
-      addCtxItem('⎘', 'Dupliquer', () => duplicateFile(target));
+      addCtxItem('\u2398', 'Dupliquer', () => duplicateFile(target));
       addCtxSep();
       addCtxItem('\u2B07', 'Exporter en PDF', () => {
         // Charger la feuille si ce n'est pas la feuille active, puis exporter
         const docId = target.dataset.docId;
         if (docId && docId !== activeDocId) {
-          // Charger d'abord, exporter après transition
+          // Charger d'abord, exporter apr?s transition
           document.querySelectorAll('.file').forEach(f => f.classList.remove('active'));
           target.classList.add('active');
           loadDoc(docId);
@@ -2020,7 +2035,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lbl) startRenameLabel(li, lbl, () => saveSidebarOnly());
       });
       addCtxSep();
-      addCtxItem('✕', 'Supprimer', () => {
+      addCtxItem('\u2715', 'Supprimer', () => {
         const name  = target.querySelector('.folder-name')?.textContent.trim() || 'ce dossier';
         const count = target.querySelectorAll('.file').length;
         showConfirm({ icon:'?', title:'Supprimer le dossier ?',
@@ -2061,7 +2076,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctxMenuEl.appendChild(d);
   }
 
-  // Fermer sur clic extérieur / Esc
+  // Fermer sur clic ext?rieur / Esc
   document.addEventListener('mousedown', e => {
     if (ctxMenuEl.classList.contains('open') && !ctxMenuEl.contains(e.target) && e.target !== ctxTrigger)
       closeCtxMenu();
@@ -2070,7 +2085,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape' && ctxMenuEl.classList.contains('open')) { e.stopImmediatePropagation(); closeCtxMenu(); }
   });
 
-  // ── Actions ───────────────────────────────────────────────
+  // ?? Actions ???????????????????????????????????????????????
   function createRootFile() {
     const newId = genDocId();
     const li = createFileItem('Nouvelle feuille', false, newId);
@@ -2103,7 +2118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Feuille dupliqu\u00E9e');
   }
 
-  // ── Workspace … ───────────────────────────────────────────
+  // ?? Workspace ? ???????????????????????????????????????????
   workspaceCtxBtn.addEventListener('click', e => {
     e.stopPropagation();
     if (ctxMenuEl.classList.contains('open') && ctxKind === 'workspace') { closeCtxMenu(); return; }
@@ -2114,13 +2129,13 @@ document.addEventListener('DOMContentLoaded', () => {
     startRename(workspaceNameEl, name => { showToast(`Espace : ${name}`); saveSidebarOnly(); });
   });
 
-  // ── Boutons apparents ──────────────────────────────────────
+  // ?? Boutons apparents ??????????????????????????????????????
   newFolderBtn.addEventListener('click', createNewFolder);
 
   /* ============================================================
-     TABLE DES MATIÈRES
+     TABLE DES MATI\u00C8RES
   ============================================================ */
-  const TOC_DELAY = 600;   // ms debounce après frappe
+  const TOC_DELAY = 600;   // ms debounce apr\u00E8s frappe
   let   tocTimer  = null;
   let   tocActive = null;  // bouton TDM actif (scroll spy)
 
@@ -2169,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tocActive = btn;
   }
 
-  // Scroll spy : mettre en évidence le titre le plus proche du haut visible
+  // Scroll spy : mettre en ?vidence le titre le plus proche du haut visible
   function updateTocSpy() {
     const headings = documentEl.querySelectorAll('h1, h2, .page-title');
     if (!headings.length) return;
@@ -2197,43 +2212,43 @@ document.addEventListener('DOMContentLoaded', () => {
   wrapper.addEventListener('scroll', updateTocSpy);
 
   /* ============================================================
-     SUPPRESSION ACCÉLÉRÉE (style iMessage)
+     SUPPRESSION ACC\u00C9L\u00C9R\u00C9E (style iMessage)
      Sur maintien de Backspace ou Delete : supprime d'abord
-     caractère par caractère, puis accélère progressivement
-     en passant à la suppression mot par mot.
-     Le navigateur gère déjà la répétition clavier (keydown répété),
-     on compte les répétitions et on change de granularité.
+     caract\u00E8re par caract\u00E8re, puis acc\u00E9l\u00E8re progressivement
+     en passant \u00E0 la suppression mot par mot.
+     Le navigateur g\u00E8re d\u00E9j\u00E0 la r\u00E9p\u00E9tition clavier (keydown r\u00E9p\u00E9t\u00E9),
+     on compte les r\u00E9p\u00E9titions et on change de granularit\u00E9.
   ============================================================ */
-  /* Suppression accélérée sur maintien de Backspace/Delete.
-     Toutes les autres touches : répétition 100% native (on n'intercepte rien).
-     On utilise e.repeat (true quand le navigateur répète automatiquement)
-     pour ne jamais bloquer les premières pressions ni les autres touches. */
+  /* Suppression acc?l?r?e sur maintien de Backspace/Delete.
+     Toutes les autres touches : r\u00E9p\u00E9tition 100% native (on n'intercepte rien).
+     On utilise e.repeat (true quand le navigateur r\u00E9p\u00E8te automatiquement)
+     pour ne jamais bloquer les premi\u00E8res pressions ni les autres touches. */
 
   const delRepeat = { count: 0, key: null };
-  const DEL_WORD_AFTER = 10; // répétitions avant passage mot entier (~1s)
+  const DEL_WORD_AFTER = 10; // r\u00E9p\u00E9titions avant passage mot entier (~1s)
 
   function attachDeleteAcceleration(el) {
     el.addEventListener('keydown', e => {
-      // On ne touche qu'à Backspace et Delete, et seulement en répétition
+      // On ne touche qu'? Backspace et Delete, et seulement en r?p?tition
       if (e.key !== 'Backspace' && e.key !== 'Delete') {
         delRepeat.count = 0; delRepeat.key = null;
         return; // toutes les autres touches : comportement 100% natif
       }
 
       if (!e.repeat) {
-        // Première pression : natif, on remet juste le compteur
+        // Premi?re pression : natif, on remet juste le compteur
         delRepeat.count = 0;
         delRepeat.key   = e.key;
         return;
       }
 
-      // Répétition native (e.repeat === true)
+      // R?p?tition native (e.repeat === true)
       delRepeat.count++;
 
-      // Sous le seuil : laisser le navigateur gérer normalement
+      // Sous le seuil : laisser le navigateur g?rer normalement
       if (delRepeat.count < DEL_WORD_AFTER) return;
 
-      // Au-dessus du seuil : passer à la suppression par mot
+      // Au-dessus du seuil : passer ? la suppression par mot
       e.preventDefault();
       if (e.key === 'Backspace') {
         document.execCommand('deleteWordBackward');
@@ -2255,13 +2270,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ============================================================
      AUTO-CORRECTEUR IA
-     Appel à l'API Anthropic /v1/messages.
-     Les 3 modes traitent le paragraphe courant (ou la sélection).
-     Résultat affiché en track changes : <del> rouge + <ins> vert.
+     Appel \u00E0 l'API Anthropic /v1/messages.
+     Les 3 modes traitent le paragraphe courant (ou la s\u00E9lection).
+     R\u00E9sultat affich\u00E9 en track changes : <del> rouge + <ins> vert.
   ============================================================ */
 
   let aiOriginalText  = '';  // texte original avant correction
-  let aiOriginalBlock = null; // nœud DOM du bloc corrige
+  let aiOriginalBlock = null; // n\u0153ud DOM du bloc corrige
   let aiCorrectedText = '';  // texte corrige par l'IA
 
   const AI_PROMPTS = {
@@ -2270,13 +2285,13 @@ document.addEventListener('DOMContentLoaded', () => {
     formal: "Tu es un expert en redaction formelle et soutenue en francais. Reecris ce texte dans un registre soutenu et professionnel. Utilise un vocabulaire riche et une syntaxe soignee. Reponds UNIQUEMENT avec le texte reecrit, sans commentaire ni explication.",
   };
 
-  // ── Ouverture / fermeture ────────────────────────────────
+  // ?? Ouverture / fermeture ????????????????????????????????
   function openAiPanel(targetOverride) {
     if (targetOverride) {
       aiOriginalText  = targetOverride.text;
       aiOriginalBlock = targetOverride.block;
     }
-    // Reset à l'étape 1
+    // Reset ? l'?tape 1
     aiStepModesEl.style.display  = 'block';
     aiStepResultEl.style.display = 'none';
     aiActionsEl.style.display    = 'none';
@@ -2298,8 +2313,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Bouton marge gauche ───────────────────────────────────
-  // Apparaît quand le curseur est dans un bloc de texte
+  // ?? Bouton marge gauche ???????????????????????????????????
+  // Appara?t quand le curseur est dans un bloc de texte
   let marginBtnBlock = null;
 
   function updateMarginBtn() {
@@ -2322,7 +2337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     marginBtnBlock = null;
   }
 
-  // Écouter les mouvements de curseur
+  // ?couter les mouvements de curseur
   document.addEventListener('selectionchange', updateMarginBtn);
   document.addEventListener('keyup', updateMarginBtn);
 
@@ -2336,7 +2351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openAiPanel();
   });
 
-  // ── Clic droit sur le texte ───────────────────────────────
+  // ?? Clic droit sur le texte ???????????????????????????????
   (textBox ? [textBox] : []).forEach(() => {}); // init guard
   document.addEventListener('contextmenu', e => {
     const tb = textBox || document.querySelector('.textBox');
@@ -2349,9 +2364,9 @@ document.addEventListener('DOMContentLoaded', () => {
     aiOriginalText  = block.innerText.trim();
     aiOriginalBlock = block;
 
-    // Ouvrir directement le panneau positionné près du clic
+    // Ouvrir directement le panneau positionn? pr?s du clic
     openAiPanel();
-    // Repositionner le panneau près du clic
+    // Repositionner le panneau pr?s du clic
     const panelH = 380;
     let top = e.clientY - panelH / 2;
     top = Math.max(60, Math.min(top, window.innerHeight - panelH - 20));
@@ -2359,7 +2374,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aiPanelEl.style.transform = 'translateX(0)';
   });
 
-  // ── Clic sur un mode → fermer panneau + stream inline ────
+  // ?? Clic sur un mode ? fermer panneau + stream inline ????
   aiModesEl.addEventListener('click', async e => {
     const btn = e.target.closest('.ai-mode-btn');
     if (!btn) return;
@@ -2382,18 +2397,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     closeAiPanel();
 
-    // Passer directement en paramètre - pas de variable globale
+    // Passer directement en param?tre - pas de variable globale
     await startInlineStream(mode, capturedText, capturedBlock);
   });
 
-  // ── Streaming inline dans la page ────────────────────────
-  let aiInlineWrapper  = null; // le wrapper injecté dans le DOM
+  // ?? Streaming inline dans la page ????????????????????????
+  let aiInlineWrapper  = null; // le wrapper inject\u00E9 dans le DOM
   let aiInlineCorrEl   = null; // le bloc de correction en cours d'\u00E9criture
   let aiInlineFloating = null; // les boutons flottants
 
   async function startInlineStream(mode, originalText, originalBlock) {
     if (!originalBlock || !originalText) return;
-    cancelInline(); // nettoyer un précédent
+    cancelInline(); // nettoyer un pr\u00E9c\u00E9dent
 
     // Stocker dans les globales pour accepter/annuler
     aiOriginalText  = originalText;
@@ -2403,9 +2418,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Griser le bloc original
     originalBlock.classList.add('ai-original-struck');
 
-    // 2. Wrapper de correction — toujours inséré dans le textBox,
-    //    juste après l'enfant direct qui contient le bloc original.
-    //    Cela évite d'insérer à l'intérieur d'un <li>, <blockquote>, etc.
+    // 2. Wrapper de correction ? toujours ins?r? dans le textBox,
+    //    juste apr?s l'enfant direct qui contient le bloc original.
+    //    Cela ?vite d'ins?rer ? l'int?rieur d'un <li>, <blockquote>, etc.
     aiInlineWrapper = document.createElement('div');
     aiInlineWrapper.className = 'ai-inline-wrapper';
 
@@ -2422,10 +2437,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tb = textBox || document.querySelector('.textBox');
     let insertAfter = originalBlock;
     if (tb && !tb.contains(originalBlock)) {
-      // Bloc hors textBox (titre) → insérer après le textBox
+      // Bloc hors textBox (titre) ? ins?rer apr?s le textBox
       insertAfter = tb;
     } else if (tb && originalBlock.parentElement !== tb) {
-      // Bloc imbriqué → remonter à l'enfant direct du textBox
+      // Bloc imbriqu? ? remonter ? l'enfant direct du textBox
       let cur = originalBlock;
       while (cur && cur.parentElement !== tb) cur = cur.parentElement;
       if (cur) insertAfter = cur;
@@ -2433,7 +2448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     insertAfter.after(aiInlineWrapper);
 
     try {
-      // Nœud texte dédié + curseur fixe en dernier enfant
+      // N?ud texte d?di? + curseur fixe en dernier enfant
       const inlineTextNode   = document.createTextNode('');
       const inlineStreamCursor = document.createElement('span');
       inlineStreamCursor.className = 'ai-cursor';
@@ -2494,7 +2509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aiOriginalText = ''; aiOriginalBlock = null; aiCorrectedText = '';
   }
 
-  // ── Accepter / Refuser (boutons du panneau - fallback) ────
+  // ?? Accepter / Refuser (boutons du panneau - fallback) ????
   aiAcceptBtn.addEventListener('click', () => {
     if (!aiOriginalBlock || !aiCorrectedText) return;
     snapshotNow(textBox);
@@ -2514,17 +2529,17 @@ document.addEventListener('DOMContentLoaded', () => {
     aiActionsEl.style.display    = 'none';
   });
 
-  // ── Trouver le texte cible (sélection ou paragraphe courant) ─
+  // ?? Trouver le texte cible (s?lection ou paragraphe courant) ?
   function getAiTarget() {
     const sel = window.getSelection();
 
-    // Si sélection non vide dans le textBox → utiliser le texte sélectionné
+    // Si s?lection non vide dans le textBox ? utiliser le texte s?lectionn?
     // On prend le bloc du FOCUS (point de fin) pour l'emplacement du wrapper
     if (sel && !sel.isCollapsed && sel.toString().trim()) {
       const focusNode = sel.focusNode;
       const el = focusNode.nodeType === 3 ? focusNode.parentElement : focusNode;
       if (el.closest('.textBox') || el.closest('.page-title')) {
-        // Le bloc = enfant direct du textBox contenant la fin de la sélection
+        // Le bloc = enfant direct du textBox contenant la fin de la s?lection
         const block = getDirectTextBlock(el);
         const selectedText = sel.toString().trim();
         if (block && selectedText) {
@@ -2533,7 +2548,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Curseur simple → bloc courant
+    // Curseur simple ? bloc courant
     if (!sel || sel.rangeCount === 0) return null;
     const node  = sel.anchorNode;
     const el    = node.nodeType === 3 ? node.parentElement : node;
@@ -2558,19 +2573,19 @@ document.addEventListener('DOMContentLoaded', () => {
       cur = cur.parentElement;
       if (!cur) return null;
     }
-    // Vérifier que c'est un bloc avec du texte
+    // V?rifier que c'est un bloc avec du texte
     if (cur && cur.parentElement === tb && cur.innerText?.trim()) return cur;
     return null;
   }
 
-  // ── Appel API Anthropic ───────────────────────────────────
-  // ⚠️  CLÉ DE TEST - ne jamais partager ce fichier avec la clé dedans
+  // ?? Appel API Anthropic ???????????????????????????????????
+  // ??  CL? DE TEST - ne jamais partager ce fichier avec la cl? dedans
   //     Remplacer par un proxy backend avant mise en production
-  const ANTHROPIC_API_KEY = ''; // Renseigner via ⚙ Préférences
+  const ANTHROPIC_API_KEY = ''; // Renseigner via \u2699 Pr\u00E9f\u00E9rences
 
 
 
-  // ── Appel API avec retry sur surcharge (529) ─────────────
+  // ?? Appel API avec retry sur surcharge (529) ?????????????
   async function callAI(mode, text) {
     const storedKey = (() => { try { return localStorage.getItem('zaap_api_key') || ''; } catch(_) { return ''; } })();
     const activeKey = storedKey || ANTHROPIC_API_KEY;
@@ -2619,7 +2634,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // ── Simulation d'écriture progressive (pas de serveur requis) ──
+  // ?? Simulation d'?criture progressive (pas de serveur requis) ??
   function simulateStream(text, onToken, onDone) {
     const words = text.split(' ');
     let i = 0;
@@ -2632,15 +2647,15 @@ document.addEventListener('DOMContentLoaded', () => {
     next();
   }
 
-  // streamAI : appel réel + affichage simulé mot par mot
+  // streamAI : appel r?el + affichage simul? mot par mot
   async function streamAI(mode, text, onToken) {
     const result = await callAI(mode, text);
     return new Promise(resolve => simulateStream(result, onToken, resolve));
   }
 
 
-  // ── Diff simple : mot à mot ───────────────────────────────
-  // Algorithme LCS basique pour mettre en évidence les changements.
+  // ?? Diff simple : mot ? mot ???????????????????????????????
+  // Algorithme LCS basique pour mettre en ?vidence les changements.
   function buildDiff(original, corrected) {
     const oldWords = original.split(/(\s+)/);
     const newWords = corrected.split(/(\s+)/);
@@ -2685,10 +2700,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
-     PRÉFÉRENCES
+     PR\u00C9F\u00C9RENCES
   ============================================================ */
   function openPrefsModal() {
-    // Pré-remplir la clé si déjà sauvegardée
+    // Pr?-remplir la cl? si d?j? sauvegard?e
     try {
       const saved = localStorage.getItem('zaap_api_key');
       if (saved) prefsApiKey.value = saved;
@@ -2791,8 +2806,8 @@ document.addEventListener('DOMContentLoaded', () => {
     mailSubjectEl.textContent = mailData.subject || '';
     mailBodyEl.textContent    = '';
 
-    // Simuler l'écriture du corps progressivement
-    // Nœud texte dédié + curseur séparé pour éviter les conflits DOM
+    // Simuler l'?criture du corps progressivement
+    // N?ud texte d?di? + curseur s?par? pour ?viter les conflits DOM
     const mailTextNode = document.createTextNode('');
     const mailStreamCursor = document.createElement('span');
     mailStreamCursor.className = 'mail-cursor';
@@ -2842,7 +2857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Générer le mail ──────────────────────────────────────
+  // ?? G?n?rer le mail ??????????????????????????????????????
   async function triggerMailGeneration() {
     const prompt = mailPromptEl.value.trim();
     if (!prompt) { showToast("Decris ton mail d'abord"); return; }
@@ -2872,7 +2887,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Boutons d'envoi ─────────────────────────────────────
+  // ?? Boutons d'envoi ?????????????????????????????????????
   mailSendMailto?.addEventListener('click', () => {
     const mailTo  = encodeURIComponent(mailToEl.textContent.trim());
     const subject = encodeURIComponent(mailSubjectEl.textContent.trim());
@@ -2891,10 +2906,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mailTo  = mailToEl.textContent.trim();
     const subject = mailSubjectEl.textContent.trim();
     const body    = mailBodyEl.textContent.trim();
-    const text    = `\u00C0 : ${mailTo}
-Objet : ${subject}
-
-${body}`;
+    const text    = 'A : ' + mailTo + '\nObjet : ' + subject + '\n\n' + body;
     try {
       await navigator.clipboard.writeText(text);
       showToast('Mail copie dans le presse-papiers');
@@ -2905,18 +2917,18 @@ ${body}`;
 
   mailClearBtn?.addEventListener('click', clearMailPreview);
 
-  // ── Commande !mail → basculer en mode mail ──────────────
-  // (branché dans processCommand - voir ci-dessous)
+  // ?? Commande !mail ? basculer en mode mail ??????????????
+  // (branch? dans processCommand - voir ci-dessous)
 
   /* ============================================================
      RECHERCHE DANS LA PAGE (Ctrl+F)
   ============================================================ */
-  let findMatches  = [];   // liste des <mark> injectés
+  let findMatches  = [];   // liste des <mark> inject\u00E9s
   let findCurrent  = -1;   // index de l'occurrence active
-  let findLastQ    = '';   // dernière requête
+  let findLastQ    = '';   // derni\u00E8re requ\u00EAte
 
   function openFind() {
-    // Centrer par rapport à la zone de contenu (hors sidebar)
+    // Centrer par rapport ? la zone de contenu (hors sidebar)
     const sidebarClosed = sidebar.classList.contains('closed');
     const sw = sidebarClosed ? 0 : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-w')) || 232;
     findBar.style.left = (sw + (window.innerWidth - sw) / 2) + 'px';
@@ -2924,7 +2936,7 @@ ${body}`;
     findBar.classList.add('open');
     findInput.focus();
     findInput.select();
-    // Si du texte est sélectionné dans le doc, le pré-remplir
+    // Si du texte est s?lectionn? dans le doc, le pr?-remplir
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) {
       const t = sel.toString().trim();
@@ -2962,7 +2974,7 @@ ${body}`;
     const zones = [titleEl, textBox].filter(Boolean);
     zones.forEach(zone => highlightInZone(zone, query));
 
-    // Mettre à jour le compteur
+    // Mettre ? jour le compteur
     if (findMatches.length === 0) {
       findCount.textContent = 'Aucun';
       findCount.classList.add('no-results');
@@ -2974,10 +2986,10 @@ ${body}`;
   }
 
   function highlightInZone(zone, query) {
-    // Parcourir les nœuds texte récursivement
+    // Parcourir les n?uds texte r?cursivement
     const walker = document.createTreeWalker(zone, NodeFilter.SHOW_TEXT, {
       acceptNode: n => {
-        // Ignorer les spacers et les éléments non-éditables
+        // Ignorer les spacers et les ?l?ments non-?ditables
         if (n.parentElement.closest('.page-spacer, .ai-inline-wrapper, .find-highlight')) {
           return NodeFilter.FILTER_REJECT;
         }
@@ -3017,13 +3029,13 @@ ${body}`;
     document.querySelectorAll('.find-highlight').forEach(mark => {
       mark.replaceWith(document.createTextNode(mark.textContent));
     });
-    // Normaliser les nœuds texte fusionnés
+    // Normaliser les n?uds texte fusionn?s
     [titleEl, textBox].filter(Boolean).forEach(z => z.normalize());
   }
 
   function goToMatch(idx) {
     if (findMatches.length === 0) return;
-    // Désactiver l'ancienne occurrence
+    // D?sactiver l'ancienne occurrence
     if (findCurrent >= 0 && findMatches[findCurrent]) {
       findMatches[findCurrent].classList.remove('find-active');
     }
@@ -3032,7 +3044,7 @@ ${body}`;
     mark.classList.add('find-active');
     // Scroller pour rendre visible
     mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Mettre à jour le compteur
+    // Mettre ? jour le compteur
     findCount.textContent = (findCurrent + 1) + '/' + findMatches.length;
     findCount.classList.remove('no-results');
     updateFindNav();
@@ -3044,7 +3056,7 @@ ${body}`;
     findNextBtn.disabled = !hasMatches;
   }
 
-  // ── Listeners ─────────────────────────────────────────────
+  // ?? Listeners ?????????????????????????????????????????????
   findInput.addEventListener('input', () => runFind(findInput.value));
 
   findInput.addEventListener('keydown', e => {
@@ -3061,18 +3073,18 @@ ${body}`;
   findCloseBtn.addEventListener('click', closeFind);
 
   /* ============================================================
-     DÉFINITIONS AUTO " "
-     Détecte les termes entre guillemets ("terme") et insère
-     une définition courte générée par Claude juste en dessous.
-     Déclencheurs :
-       1. Automatique : "terme" + Entrée dans le textBox
+     D\u00C9FINITIONS AUTO " "
+     D\u00E9tecte les termes entre guillemets ("terme") et ins\u00E8re
+     une d\u00E9finition courte g\u00E9n\u00E9r\u00E9e par Claude juste en dessous.
+     D\u00E9clencheurs :
+       1. Automatique : "terme" + Entr\u00E9e dans le textBox
        2. Manuel      : Ctrl+Shift+D sur un bloc contenant "terme"
   ============================================================ */
   const DEF_PROMPT = 'Tu es un dictionnaire concis. Donne une definition courte (1-2 phrases maximum) du terme suivant. Reponds UNIQUEMENT avec la definition, sans reformuler le terme, sans introduction, sans guillemets autour de la definition.';
 
-  // Regex : guillemets français ou anglais autour d'un terme
-  // Guillemets vrais uniquement — exclut l'apostrophe droit ' (trop ambigu en français)
-  // Détecte : « terme » | "terme" | "terme" | 'terme' (guillemets typographiques)
+  // Regex : guillemets fran?ais ou anglais autour d'un terme
+  // Guillemets vrais uniquement ? exclut l'apostrophe droit ' (trop ambigu en fran?ais)
+  // D?tecte : ? terme ? | "terme" | "terme" | 'terme' (guillemets typographiques)
   const QUOTED_RE = /(?:[\u00AB\u201C\u2018])([^\u00AB\u00BB\u201C\u201D\u2018\u2019"]{2,60})(?:[\u00BB\u201D\u2019])|"([^"]{2,60})"/g;
 
   async function fetchDefinition(term) {
@@ -3113,10 +3125,10 @@ ${body}`;
   }
 
   function insertDefinitionBlock(afterEl, term, definition) {
-    // Guards : afterEl doit exister et être dans le DOM
+    // Guards : afterEl doit exister et ?tre dans le DOM
     if (!afterEl || !afterEl.isConnected) return;
 
-    // Ne pas insérer si une définition pour ce terme existe déjà juste après
+    // Ne pas ins?rer si une d?finition pour ce terme existe d?j? juste apr?s
     const next = afterEl.nextElementSibling;
     if (next && next.classList?.contains('definition-block') &&
         next.querySelector?.('.definition-term')?.textContent === term) return;
@@ -3145,7 +3157,7 @@ ${body}`;
 
     afterEl.after(block);
 
-    // Nœud texte dédié + curseur séparé
+    // N?ud texte d?di? + curseur s?par?
     const defTextNode = document.createTextNode('');
     const defStreamCursor = document.createElement('span');
     defStreamCursor.className = 'ai-cursor';
@@ -3165,7 +3177,7 @@ ${body}`;
   }
 
 
-  // ── Bulle de définition au survol ────────────────────────
+  // ?? Bulle de d?finition au survol ????????????????????????
   let defBubble     = null;
   let defBubbleTimer = null;
   let defBubbleTerm  = null;
@@ -3175,12 +3187,12 @@ ${body}`;
     if (defBubble) return;
     defBubble = document.createElement('div');
     defBubble.className = 'def-bubble';
-    defBubble.textContent = '📖 Definir';
+    defBubble.textContent = '\u1F4D6 Definir';
     document.body.appendChild(defBubble);
 
     defBubble.addEventListener('click', async () => {
       if (!defBubbleTerm || !defBubbleBlock) return;
-      // Capturer localement avant hideDefBubble() qui remet à null
+      // Capturer localement avant hideDefBubble() qui remet ? null
       const term  = defBubbleTerm;
       const block = defBubbleBlock;
       hideDefBubble();
@@ -3221,15 +3233,15 @@ ${body}`;
     el.addEventListener('mousemove', e => {
       clearTimeout(defBubbleTimer);
       defBubbleTimer = setTimeout(() => {
-        // Vérifier qu'on n'est pas en train de sélectionner
+        // V?rifier qu'on n'est pas en train de s?lectionner
         const sel = window.getSelection();
         if (sel && !sel.isCollapsed) return;
-        // Vérifier qu'on n'est pas en train d'éditer activement
+        // V?rifier qu'on n'est pas en train d'?diter activement
         if (document.activeElement === el) {
           // OK si on survole sans taper
         }
 
-        // Trouver le nœud texte sous le curseur
+        // Trouver le n?ud texte sous le curseur
         let node = null;
         if (document.caretRangeFromPoint) {
           const r = document.caretRangeFromPoint(e.clientX, e.clientY);
@@ -3240,7 +3252,7 @@ ${body}`;
         }
         if (!node || node.nodeType !== Node.TEXT_NODE) { hideDefBubble(); return; }
 
-        // Ignorer si on survole un bloc définition déjà inséré
+        // Ignorer si on survole un bloc d?finition d?j? ins?r?
         const nodeEl = node.parentElement;
         if (nodeEl.closest('.definition-block')) { hideDefBubble(); return; }
 
@@ -3265,7 +3277,7 @@ ${body}`;
         range.selectNodeContents(block);
         const rect = block.getBoundingClientRect();
         showDefBubble(found, block, rect);
-      }, 400); // délai 400ms avant d'afficher
+      }, 400); // d\u00E9lai 400ms avant d'afficher
     });
 
     el.addEventListener('mouseleave', e => {
@@ -3277,7 +3289,7 @@ ${body}`;
     });
   }
 
-  // ── Ctrl+Shift+D (conservé) ───────────────────────────────
+  // ?? Ctrl+Shift+D (conserv?) ???????????????????????????????
   async function triggerDefinitionAtCursor() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) { showToast('Place le curseur dans un bloc avec un terme entre guillemets'); return; }
@@ -3308,11 +3320,11 @@ ${body}`;
   ============================================================ */
   const AGENDA_KEY  = 'zaap_agenda';
   let agendaEvents  = [];   // [{id, title, date, time, duration, notes}]
-  let agendaCurrent = new Date(); // mois/semaine affiché
+  let agendaCurrent = new Date(); // mois/semaine affich\u00E9
   let agendaView    = 'month';
   let editingEventId = null;
 
-  // ── Persistance ──────────────────────────────────────────
+  // ?? Persistance ??????????????????????????????????????????
   function loadAgendaEvents() {
     try {
       const raw = localStorage.getItem(AGENDA_KEY);
@@ -3328,7 +3340,7 @@ ${body}`;
     return 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   }
 
-  // ── Rendu vue mensuelle ──────────────────────────────────
+  // ?? Rendu vue mensuelle ??????????????????????????????????
   function renderMonth() {
     const y = agendaCurrent.getFullYear();
     const m = agendaCurrent.getMonth();
@@ -3345,7 +3357,7 @@ ${body}`;
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
 
-    // Jours du mois précédent
+    // Jours du mois pr?c?dent
     for (let i = 0; i < startDow; i++) {
       const d = new Date(y, m, -(startDow - i - 1));
       agendaGrid.appendChild(makeDayCell(d, true, todayStr));
@@ -3354,7 +3366,7 @@ ${body}`;
     for (let d = 1; d <= lastDay.getDate(); d++) {
       agendaGrid.appendChild(makeDayCell(new Date(y, m, d), false, todayStr));
     }
-    // Compléter la grille
+    // Compl?ter la grille
     const total = agendaGrid.children.length;
     const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
     for (let i = 1; i <= remaining; i++) {
@@ -3362,8 +3374,8 @@ ${body}`;
     }
   }
 
-  // ── Drag & Drop état ─────────────────────────────────────
-  let dragEventId   = null;  // id de l'événement en cours de drag
+  // ?? Drag & Drop ?tat ?????????????????????????????????????
+  let dragEventId   = null;  // id de l'\u00E9v\u00E9nement en cours de drag
   let dragSourceDate = null; // date source
 
   function makeDayCell(date, otherMonth, todayStr) {
@@ -3388,7 +3400,7 @@ ${body}`;
       chip.dataset.eventId = ev.id;
       chip.textContent = (ev.time ? ev.time.slice(0, 5) + ' ' : '') + ev.title;
 
-      // Clic → modale
+      // Clic ? modale
       chip.addEventListener('click', e => { e.stopPropagation(); openEventModal(dateStr, ev.id); });
 
       // Drag start
@@ -3430,7 +3442,7 @@ ${body}`;
       e.preventDefault();
       cell.classList.remove('drag-over');
       if (!dragEventId || dateStr === dragSourceDate) return;
-      // Déplacer l'événement vers la nouvelle date
+      // D?placer l'?v?nement vers la nouvelle date
       const idx = agendaEvents.findIndex(ev => ev.id === dragEventId);
       if (idx !== -1) {
         agendaEvents[idx].date = dateStr;
@@ -3444,7 +3456,7 @@ ${body}`;
     return cell;
   }
 
-  // ── Rendu vue hebdomadaire ────────────────────────────────
+  // ?? Rendu vue hebdomadaire ????????????????????????????????
   function renderWeek() {
     const d = new Date(agendaCurrent);
     // Aller au lundi de la semaine
@@ -3477,7 +3489,7 @@ ${body}`;
       agendaWeekHeader.appendChild(hdr);
     });
 
-    // Body — 8h à 20h
+    // Body ? 8h ? 20h
     agendaWeekBody.innerHTML = '';
     for (let h = 8; h <= 20; h++) {
       const label = document.createElement('div');
@@ -3492,7 +3504,7 @@ ${body}`;
         cell.dataset.date = dateStr;
         cell.dataset.hour = h;
 
-        // Événements de cette heure
+        // ?v?nements de cette heure
         const evts = agendaEvents.filter(ev => {
           if (ev.date !== dateStr) return false;
           const evH = ev.time ? parseInt(ev.time.slice(0, 2)) : 9;
@@ -3559,11 +3571,11 @@ ${body}`;
     loadAgendaEvents();
     if (agendaView === 'month') renderMonth();
     else                        renderWeek();
-    // Mettre à jour le récap si ouvert
+    // Mettre ? jour le r?cap si ouvert
     if (document.querySelector('.agenda-layout.recap-open')) renderRecapEvents();
   }
 
-  // ── Navigation ────────────────────────────────────────────
+  // ?? Navigation ????????????????????????????????????????????
   agendaPrevBtn.addEventListener('click', () => {
     if (agendaView === 'month') agendaCurrent.setMonth(agendaCurrent.getMonth() - 1);
     else                        agendaCurrent.setDate(agendaCurrent.getDate() - 7);
@@ -3591,7 +3603,7 @@ ${body}`;
     });
   });
 
-  // ── Modal événement ───────────────────────────────────────
+  // ?? Modal ?v?nement ???????????????????????????????????????
   function openEventModal(dateStr, eventId, prefHour) {
     editingEventId = eventId || null;
     eventModalTitle.textContent = eventId ? '\u00C9v\u00E9nement' : 'Nouvel \u00E9v\u00E9nement';
@@ -3673,7 +3685,7 @@ ${body}`;
     if (e.key === 'Escape') closeEventModal();
   });
 
-  // ── Commande !agenda → génération IA ────────────────────
+  // ?? Commande !agenda ? g?n?ration IA ????????????????????
   async function generateAgendaEvent(description) {
     const prompt = 'Analyse cette description et extrais les informations pour un evenement de calendrier. ' +
       'Reponds UNIQUEMENT en JSON avec : {"title":"...","date":"YYYY-MM-DD","time":"HH:MM","duration":60,"notes":"..."}. ' +
@@ -3710,9 +3722,9 @@ ${body}`;
       saveAgendaEvents();
       // Stocker la date pour naviguer si l'utilisateur accepte
       if (ev.date) agendaCurrent = new Date(ev.date + 'T00:00:00');
-      // Toast avec bouton — ne pas basculer automatiquement
+      // Toast avec bouton ? ne pas basculer automatiquement
       showToastWithAction(
-        ev.title + ' ajouté',
+        ev.title + ' ajout\u00E9',
         "Voir l'agenda",
         () => { renderAgenda(); switchMode('calendar'); }
       );
@@ -3734,7 +3746,7 @@ ${body}`;
   });
 
   /* ============================================================
-     RÉCAP HEBDO
+     R\u00C9CAP HEBDO
   ============================================================ */
   const TASKS_KEY = 'zaap_tasks';
   let weekTasks   = [];
@@ -3747,7 +3759,7 @@ ${body}`;
     try { localStorage.setItem(TASKS_KEY, JSON.stringify(weekTasks)); } catch(_) {}
   }
 
-  // ── Toggle panneau ────────────────────────────────────────
+  // ?? Toggle panneau ????????????????????????????????????????
   function toggleRecap() {
     const layout = document.querySelector('.agenda-layout');
     if (!layout) return;
@@ -3757,7 +3769,7 @@ ${body}`;
 
 
 
-  // ── Rendu du récap ────────────────────────────────────────
+  // ?? Rendu du r?cap ????????????????????????????????????????
   function renderRecap() {
     renderRecapEvents();
     renderRecapTasks();
@@ -3787,7 +3799,7 @@ ${body}`;
     el.innerHTML = '';
 
     if (weekEvents.length === 0) {
-      el.innerHTML = '<p class="recap-empty">Aucun événement cette semaine</p>';
+      el.innerHTML = '<p class="recap-empty">Aucun \u00E9v\u00E9nement cette semaine</p>';
       return;
     }
 
@@ -3854,7 +3866,7 @@ ${body}`;
 
       const del = document.createElement('button');
       del.className = 'recap-task-del';
-      del.textContent = '✕';
+      del.textContent = '\u2715';
       del.addEventListener('click', () => {
         weekTasks.splice(idx, 1);
         saveTasks();
@@ -3880,24 +3892,24 @@ ${body}`;
     input.focus();
   }
 
-  // Le récap est mis à jour via renderRecap() appelé depuis renderMonth/renderWeek
+  // Le r?cap est mis ? jour via renderRecap() appel? depuis renderMonth/renderWeek
 
-  // ── Délégation récap agenda ──────────────────────────────
-  // Fonctionne même quand le mode agenda est display:none au chargement
+  // ?? D?l?gation r?cap agenda ??????????????????????????????
+  // Fonctionne m?me quand le mode agenda est display:none au chargement
   document.addEventListener('click', e => {
-    // Bouton toggle Résumé
+    // Bouton toggle R?sum?
     if (e.target.closest('#agendaRecapToggle')) { toggleRecap(); return; }
-    // Bouton fermer récap
+    // Bouton fermer r?cap
     if (e.target.closest('#agendaRecapClose')) {
       const layout = document.querySelector('.agenda-layout');
       if (layout) layout.classList.remove('recap-open');
       return;
     }
-    // Bouton + ajouter tâche
+    // Bouton + ajouter t?che
     if (e.target.closest('#recapTaskAddBtn')) { addTask(); return; }
   });
 
-  // Délégation keydown pour le champ tâche
+  // D?l?gation keydown pour le champ t?che
   document.addEventListener('keydown', e => {
     if (e.target.id === 'recapTaskInput' && e.key === 'Enter') {
       e.preventDefault(); addTask();
@@ -3928,7 +3940,7 @@ ${body}`;
     // Bouton retour
     onboardingPrev.style.visibility = n === 1 ? 'hidden' : 'visible';
     // Bouton suivant / terminer
-    onboardingNext.textContent = n === totalSteps ? 'Commencer →' : 'Suivant →';
+    onboardingNext.textContent = n === totalSteps ? 'Commencer \u2192' : 'Suivant \u2192';
   }
 
   function closeOnboarding() {
@@ -3973,230 +3985,171 @@ ${body}`;
 
   /* ============================================================
   /* ============================================================
-     FICHES DE REVISION (FLASHCARDS)
-  const FLASHCARD_PROMPT_QA = 'Tu es un professeur expert. Analyse ce texte et genere des flashcards en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{q:question,r:reponse}]. Genere 5 a 15 fiches. Questions courtes, reponses concises.';
-  const FLASHCARD_PROMPT_SUMMARY = 'Tu es un professeur expert. Analyse ce texte et genere des fiches resume par theme en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{q:titre,r:resume}]. Genere 4 a 10 fiches.';
+     FICHES DE REVISION
+  ============================================================ */
+  var fcCards  = [];
+  var fcIdx    = 0;
+  var fcFormat = 'qa';
 
-  let flashcards      = [];
-  let flashcardIndex  = 0;
-  let flashcardFormat = 'qa';
-  let isDragging      = false;
-  let dragOffX = 0, dragOffY = 0;
-
-  // ── Ouvrir / fermer ───────────────────────────────────────
-  function openFlashcardPanel() {
-    const panel = document.getElementById('flashcardPanel');
-    if (!panel) return;
-    // Reset
-    flashcards = []; flashcardIndex = 0;
-    showFlashcardSection('setup');
-    panel.classList.add('open');
-  }
-
-  function closeFlashcardPanel() {
-    const panel = document.getElementById('flashcardPanel');
-    if (panel) panel.classList.remove('open');
-  }
-
-  // ── Sections ─────────────────────────────────────────────
-  function showFlashcardSection(name) {
-    const sections = { setup: 'flashcardSetup', loading: 'flashcardLoading', view: 'flashcardView', done: 'flashcardDone' };
-    Object.values(sections).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
+  function openFcPanel() {
+    fcCards = []; fcIdx = 0;
+    fcSetupEl.style.display   = 'block';
+    fcLoadingEl.style.display = 'none';
+    fcViewEl.style.display    = 'none';
+    fcDoneEl.style.display    = 'none';
+    document.querySelectorAll('.flashcard-format-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.format === 'qa');
     });
-    const el = document.getElementById(sections[name]);
-    if (el) el.style.display = name === 'loading' ? 'flex' : (name === 'view' || name === 'done' ? 'flex' : 'block');
+    fcFormat = 'qa';
+    fcPanelEl.classList.add('open');
   }
 
-  // ── Générer les fiches ────────────────────────────────────
-  async function generateFlashcards() {
-    const tb = textBox || document.querySelector('.textBox');
-    const title = titleEl ? titleEl.innerText.trim() : '';
-    const body  = tb ? tb.innerText.trim() : '';
-    const content = (title + '
+  function closeFcPanel() {
+    fcPanelEl.classList.remove('open');
+  }
 
-' + body).trim();
+  function fcShowCard() {
+    if (!fcCards.length) return;
+    fcCardEl.classList.remove('flipped');
+    fcFrontEl.textContent = fcCards[fcIdx].q || '';
+    fcBackEl.textContent  = fcCards[fcIdx].r || '';
+    fcCounterEl.textContent = (fcIdx + 1) + ' / ' + fcCards.length;
+    fcPrevEl.disabled = fcIdx === 0;
+    fcNextEl.textContent = fcIdx === fcCards.length - 1 ? '\u2713' : '\u2192';
+  }
 
-    if (content.length < 50) {
-      showToast('Le document est trop court pour générer des fiches');
+  function fcNav(dir) {
+    var idx = fcIdx + dir;
+    if (idx < 0) return;
+    if (idx >= fcCards.length) {
+      fcViewEl.style.display = 'none';
+      fcDoneEl.style.display = 'flex';
       return;
     }
+    fcIdx = idx;
+    fcShowCard();
+  }
 
-    showFlashcardSection('loading');
+  async function fcGenerate() {
+    var storedKey = '';
+    try { storedKey = localStorage.getItem('zaap_api_key') || ''; } catch(_) {}
+    var key = (storedKey || ANTHROPIC_API_KEY).replace(/[^ -~]/g, '').trim();
+    if (!key) { showToast('Configure ta cle API dans les Preferences'); return; }
 
-    const prompt = flashcardFormat === 'qa' ? FLASHCARD_PROMPT_QA : FLASHCARD_PROMPT_SUMMARY;
+    var title   = titleEl   ? (titleEl.innerText || '')   : '';
+    var body    = textBox   ? (textBox.innerText || '')    : '';
+    var content = (title + '\n\n' + body).trim().slice(0, 4000);
+    if (content.length < 30) { showToast('Document trop court'); return; }
+
+    var prompt = fcFormat === 'qa'
+      ? 'Genere des flashcards en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{"q":"question","r":"reponse"}]. 5 a 15 fiches courtes.'
+      : 'Genere des fiches resume en JSON. Reponds UNIQUEMENT avec un tableau JSON : [{"q":"Titre","r":"Resume"}]. 4 a 10 fiches.';
+
+    fcSetupEl.style.display   = 'none';
+    fcLoadingEl.style.display = 'flex';
 
     try {
-      const storedKey = (() => { try { return localStorage.getItem('zaap_api_key') || ''; } catch(_) { return ''; } })();
-      const cleanKey  = (storedKey || ANTHROPIC_API_KEY).replace(/[^ -~]/g, '').trim();
-      if (!cleanKey) throw new Error('Cle API manquante - configure-la dans Preferences');
+      var resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt + '\n\nTexte:\n' + content }],
+        }),
+      });
 
-      const MAX_RETRIES = 3;
-      let response;
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': cleanKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 2000,
-            messages: [{ role: 'user', content: prompt + '
+      if (resp.status === 529) throw new Error('Serveurs IA surcharges, reessaie');
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
 
-Texte :
-' + content.slice(0, 4000) }],
-          }),
-        });
-        if (response.status === 529) {
-          if (attempt < MAX_RETRIES) {
-            showToast('Serveurs IA charges, tentative ' + attempt + '/' + MAX_RETRIES + '...');
-            await new Promise(r => setTimeout(r, 3500 * attempt));
-            continue;
-          }
-          throw new Error('Serveurs IA surcharges. Reessaie dans quelques secondes.');
-        }
-        break;
-      }
+      var data  = await resp.json();
+      var text  = ((data.content || [])[0] || {}).text || '';
+      var match = text.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('Reponse invalide');
 
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const data = await response.json();
-      const text = (data.content?.[0]?.text || '').trim();
-      const match = text.match(/\[[\s\S]*\]/);
-      if (!match) throw new Error('Reponse IA invalide');
-      flashcards = JSON.parse(match[0]);
-      if (!flashcards.length) throw new Error('Aucune fiche generee');
+      fcCards = JSON.parse(match[0]);
+      if (!fcCards.length) throw new Error('Aucune fiche generee');
 
-      flashcardIndex = 0;
-      showFlashcardSection('view');
-      renderFlashcard();
+      fcIdx = 0;
+      fcLoadingEl.style.display = 'none';
+      fcViewEl.style.display    = 'flex';
+      fcShowCard();
 
     } catch(err) {
-      showFlashcardSection('setup');
+      fcLoadingEl.style.display = 'none';
+      fcSetupEl.style.display   = 'block';
       showToast('Erreur : ' + (err.message || 'connexion impossible'));
     }
   }
 
-  // ── Afficher une carte ────────────────────────────────────
-  function renderFlashcard() {
-    const card    = document.getElementById('flashcardCard');
-    const front   = document.getElementById('flashcardFront');
-    const back    = document.getElementById('flashcardBack');
-    const counter = document.getElementById('flashcardCounter');
-    const prevBtn = document.getElementById('flashcardPrev');
-    const nextBtn = document.getElementById('flashcardNext');
-    const hint    = document.getElementById('flashcardHint');
-    if (!card || !front || !back) return;
-
-    // Réinitialiser le flip
-    card.classList.remove('flipped');
-    const fc = flashcards[flashcardIndex];
-    front.textContent = fc.q;
-    back.textContent  = fc.r;
-    counter.textContent = (flashcardIndex + 1) + ' / ' + flashcards.length;
-    if (prevBtn) prevBtn.disabled = flashcardIndex === 0;
-    if (nextBtn) nextBtn.textContent = flashcardIndex === flashcards.length - 1 ? '✓' : '→';
-    if (hint) hint.textContent = card.classList.contains('flipped') ? 'Cliquer pour la question' : 'Cliquer pour la reponse';
-  }
-
-  // ── Drag & drop du panneau ────────────────────────────────
-  function initFlashcardDrag() {
-    const header = document.getElementById('flashcardPanelHeader');
-    const panel  = document.getElementById('flashcardPanel');
-    if (!header || !panel) return;
-
-    header.addEventListener('mousedown', e => {
+  // Drag & drop du panneau
+  (function() {
+    var dragging = false;
+    var offX = 0, offY = 0;
+    var header = document.getElementById('flashcardPanelHeader');
+    if (!header) return;
+    header.addEventListener('mousedown', function(e) {
       if (e.target.closest('.flashcard-close')) return;
-      isDragging = true;
-      const rect = panel.getBoundingClientRect();
-      dragOffX = e.clientX - rect.left;
-      dragOffY = e.clientY - rect.top;
-      panel.style.transform = 'none';
-      panel.style.left = rect.left + 'px';
-      panel.style.top  = rect.top  + 'px';
+      dragging = true;
+      var rect = fcPanelEl.getBoundingClientRect();
+      offX = e.clientX - rect.left;
+      offY = e.clientY - rect.top;
+      fcPanelEl.style.transform = 'none';
+      fcPanelEl.style.left = rect.left + 'px';
+      fcPanelEl.style.top  = rect.top  + 'px';
       e.preventDefault();
     });
-
-    document.addEventListener('mousemove', e => {
-      if (!isDragging) return;
-      panel.style.left = (e.clientX - dragOffX) + 'px';
-      panel.style.top  = (e.clientY - dragOffY) + 'px';
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      fcPanelEl.style.left = (e.clientX - offX) + 'px';
+      fcPanelEl.style.top  = (e.clientY - offY) + 'px';
     });
+    document.addEventListener('mouseup', function() { dragging = false; });
+  })();
 
-    document.addEventListener('mouseup', () => { isDragging = false; });
-  }
+  // Listeners - meme pattern que le panneau IA
+  openFlashcardsBtn.addEventListener('click', openFcPanel);
+  fcCloseEl.addEventListener('click', closeFcPanel);
 
-  // ── Listeners délégués ────────────────────────────────────
-  document.addEventListener('click', e => {
-    // Bouton toolbar fiches
-    if (e.target.closest('#openFlashcards')) { openFlashcardPanel(); return; }
-    // Fermer
-    if (e.target.closest('#flashcardClose')) { closeFlashcardPanel(); return; }
-    // Format Q/R ou Résumé
-    const fmtBtn = e.target.closest('.flashcard-format-btn');
-    if (fmtBtn) {
-      document.querySelectorAll('.flashcard-format-btn').forEach(b => b.classList.remove('active'));
-      fmtBtn.classList.add('active');
-      flashcardFormat = fmtBtn.dataset.format;
-      return;
-    }
-    // Générer
-    if (e.target.closest('#flashcardGenerate')) { generateFlashcards(); return; }
-    // Retourner la carte
-    if (e.target.closest('#flashcardCard')) {
-      const card = document.getElementById('flashcardCard');
-      const hint = document.getElementById('flashcardHint');
-      card.classList.toggle('flipped');
-      if (hint) hint.textContent = card.classList.contains('flipped') ? 'Cliquer pour la question' : 'Cliquer pour la reponse';
-      return;
-    }
-    // Navigation précédent
-    if (e.target.closest('#flashcardPrev')) {
-      if (flashcardIndex > 0) { flashcardIndex--; renderFlashcard(); }
-      return;
-    }
-    // Navigation suivant / terminer
-    if (e.target.closest('#flashcardNext')) {
-      if (flashcardIndex < flashcards.length - 1) { flashcardIndex++; renderFlashcard(); }
-      else { showFlashcardSection('done'); }
-      return;
-    }
-    // Recommencer
-    if (e.target.closest('#flashcardRestart')) {
-      flashcardIndex = 0;
-      showFlashcardSection('view');
-      renderFlashcard();
-      return;
+  document.addEventListener('mousedown', function(e) {
+    if (fcPanelEl.classList.contains('open') &&
+        !fcPanelEl.contains(e.target) &&
+        e.target !== openFlashcardsBtn) {
+      closeFcPanel();
     }
   });
 
-  // Navigation clavier
-  document.addEventListener('keydown', e => {
-    const panel = document.getElementById('flashcardPanel');
-    if (!panel || !panel.classList.contains('open')) return;
-    if (e.key === 'ArrowRight') document.getElementById('flashcardNext')?.click();
-    if (e.key === 'ArrowLeft')  document.getElementById('flashcardPrev')?.click();
-    if (e.key === ' ') { e.preventDefault(); document.getElementById('flashcardCard')?.click(); }
-    if (e.key === 'Escape') closeFlashcardPanel();
+  document.querySelectorAll('.flashcard-format-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.flashcard-format-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      fcFormat = btn.dataset.format || 'qa';
+    });
   });
 
-  // Init drag + listener bouton toolbar
-  function initFlashcardListeners() {
-    const btn = document.getElementById('openFlashcards');
-    if (btn) {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        openFlashcardPanel();
-      });
-    }
-    initFlashcardDrag();
-  }
-  document.addEventListener('DOMContentLoaded', initFlashcardListeners);
-  setTimeout(initFlashcardListeners, 300);
+  fcGenerateEl.addEventListener('click', fcGenerate);
+  fcCardEl.addEventListener('click', function() { fcCardEl.classList.toggle('flipped'); });
+  fcPrevEl.addEventListener('click', function() { fcNav(-1); });
+  fcNextEl.addEventListener('click', function() { fcNav(1); });
+  fcRestartEl.addEventListener('click', function() {
+    fcIdx = 0;
+    fcDoneEl.style.display = 'none';
+    fcViewEl.style.display = 'flex';
+    fcShowCard();
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (!fcPanelEl.classList.contains('open')) return;
+    if (e.key === 'ArrowRight') fcNav(1);
+    if (e.key === 'ArrowLeft')  fcNav(-1);
+    if (e.key === ' ')          { e.preventDefault(); fcCardEl.classList.toggle('flipped'); }
+    if (e.key === 'Escape')     closeFcPanel();
+  });
 
   /* ============================================================
      INIT
