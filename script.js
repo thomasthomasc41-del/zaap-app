@@ -299,17 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const oldRaw = localStorage.getItem(STORAGE_KEY);
         if (oldRaw) {
-          const old = JSON.parse(oldRaw);
-          if (old && old.v === 1) {
-            // Cr?er un premier doc avec l'ancien contenu
+          const legacyData = JSON.parse(oldRaw);
+          if (legacyData && legacyData.v === 1) {
+            // Creer un premier doc avec l'ancien contenu
             const migId = genDocId();
             localStorage.setItem(DOC_PREFIX + migId, JSON.stringify({
-              v: 2, savedAt: old.savedAt,
-              title: old.title || '',
-              pages: old.pages || [],
+              v: 2, savedAt: legacyData.savedAt,
+              title: legacyData.title || '',
+              pages: legacyData.pages || [],
             }));
             // Reconstruire la sidebar depuis l'ancien format
-            const folders = (old.sidebar || []).map((folder, fi) => ({
+            const folders = (legacyData.sidebar || []).map((folder, fi) => ({
               name: folder.name,
               open: folder.open,
               files: (folder.files || []).map((f, idx) => ({
@@ -720,15 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const DARK_KEY = 'zaap_dark';
 
   const ICON_MOON = `<path d="M7.5 1.5a6 6 0 1 0 6 6 4.5 4.5 0 0 1-6-6z" fill="currentColor"/>`;
-  const ICON_SUN  = `<circle cx="7.5" cy="7.5" r="3" fill="currentColor"/>
-    <line x1="7.5" y1="1" x2="7.5" y2="2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="7.5" y1="12.5" x2="7.5" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="1"   y1="7.5"  x2="2.5" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="12.5" y1="7.5" x2="14" y2="7.5"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="3"   y1="3"    x2="4.1" y2="4.1"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="10.9" y1="10.9" x2="12" y2="12"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="12"  y1="3"    x2="10.9" y2="4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    <line x1="4.1" y1="10.9" x2="3"   y2="12"  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>`;
+  const ICON_SUN  = '<circle cx="7.5" cy="7.5" r="3" fill="currentColor"/>' +
+    '<line x1="7.5" y1="1" x2="7.5" y2="2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="7.5" y1="12.5" x2="7.5" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="1" y1="7.5" x2="2.5" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="12.5" y1="7.5" x2="14" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="3" y1="3" x2="4.1" y2="4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="10.9" y1="10.9" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="12" y1="3" x2="10.9" y2="4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+    '<line x1="4.1" y1="10.9" x2="3" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>';
 
   function setDark(on) {
     document.body.classList.toggle('dark', on);
@@ -777,6 +777,65 @@ document.addEventListener('DOMContentLoaded', () => {
       exportPdf();
     }
   });
+
+  function htmlToMarkdown(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    tmp.querySelectorAll('.page-spacer, .ai-inline-wrapper, .definition-block').forEach(function(el) { el.remove(); });
+
+    function processNode(node) {
+      if (node.nodeType === 3) return node.textContent;
+      if (node.nodeType !== 1) return '';
+      var tag = node.tagName.toLowerCase();
+      var children = Array.from(node.childNodes).map(processNode).join('');
+      var text = (node.innerText || node.textContent || '').trim();
+      if (tag === 'h1') return '\n# ' + text + '\n\n';
+      if (tag === 'h2') return '\n## ' + text + '\n\n';
+      if (tag === 'strong' || tag === 'b') return '**' + children + '**';
+      if (tag === 'em' || tag === 'i') return '*' + children + '*';
+      if (tag === 'blockquote') return '\n> ' + text + '\n\n';
+      if (tag === 'ul') {
+        return '\n' + Array.from(node.querySelectorAll('li')).map(function(li) {
+          return '- ' + (li.innerText || li.textContent || '').trim();
+        }).join('\n') + '\n\n';
+      }
+      if (tag === 'ol') {
+        return '\n' + Array.from(node.querySelectorAll('li')).map(function(li, idx) {
+          return (idx + 1) + '. ' + (li.innerText || li.textContent || '').trim();
+        }).join('\n') + '\n\n';
+      }
+      if (tag === 'li') return '';
+      if (tag === 'br') return '\n';
+      if (tag === 'div' || tag === 'p') {
+        var inner = children.trim();
+        return inner ? inner + '\n\n' : '';
+      }
+      return children;
+    }
+
+    var md = Array.from(tmp.childNodes).map(processNode).join('');
+    return md.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function exportMarkdown() {
+    var docTitle = titleEl ? titleEl.textContent.trim() : 'Document';
+    var bodyHtml = textBox ? textBox.innerHTML : '';
+
+    var md = '';
+    if (docTitle) md += '# ' + docTitle + '\n\n';
+    md += htmlToMarkdown(bodyHtml);
+
+    var blob     = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    var url      = URL.createObjectURL(blob);
+    var a        = document.createElement('a');
+    a.href       = url;
+    a.download   = (docTitle || 'document') + '.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Export Markdown OK');
+  }
 
   /* ============================================================
      FOCUS MODE
@@ -1826,13 +1885,19 @@ document.addEventListener('DOMContentLoaded', () => {
     label.textContent = name;
     li.appendChild(label);
 
-    // Bouton ? supprimer - visible au survol
-    const delBtn = document.createElement('button');
-    delBtn.className   = 'file-delete-btn';
-    delBtn.textContent = '\u2715';
-    delBtn.title       = 'Supprimer';
-    delBtn.tabIndex    = -1;
-    li.appendChild(delBtn);
+    // Bouton ... menu contextuel
+    const ctxBtn = document.createElement('button');
+    ctxBtn.className   = 'ctx-trigger file-ctx';
+    ctxBtn.textContent = '\u2026';
+    ctxBtn.title       = 'Options';
+    ctxBtn.tabIndex    = -1;
+    li.appendChild(ctxBtn);
+
+    ctxBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (ctxMenuEl.classList.contains('open') && ctxTarget === li) { closeCtxMenu(); return; }
+      openCtxMenu(ctxBtn, 'file', li);
+    });
 
     // Clic sur le li (hors ?) ? activer
     li.addEventListener('click', e => {
@@ -1854,7 +1919,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
+    // (suppression via menu contextuel)
     // Clic ? ? confirmer suppression
+    // delBtn legacy - kept for compatibility
+    const delBtn = document.createElement('button');
+    delBtn.style.display = 'none';
+    li.appendChild(delBtn);
     delBtn.addEventListener('click', e => {
       e.stopPropagation();
       const name = label.textContent.trim();
@@ -2019,6 +2089,7 @@ document.addEventListener('DOMContentLoaded', () => {
       addCtxItem('+', 'Nouvelle feuille', createRootFile);
       addCtxItem('+', 'Nouveau dossier', createNewFolder);
       addCtxSep();
+      addCtxItem('\u2193', 'Exporter en Markdown', exportMarkdown);
       addCtxItem('\u2B07', 'Exporter en PDF',  exportPdf);
     }
     if (kind === 'file') {
@@ -2028,11 +2099,21 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       addCtxItem('\u2398', 'Dupliquer', () => duplicateFile(target));
       addCtxSep();
-      addCtxItem('\u2B07', 'Exporter en PDF', () => {
-        // Charger la feuille si ce n'est pas la feuille active, puis exporter
+      addCtxItem('\u2193', 'Exporter en Markdown', () => {
         const docId = target.dataset.docId;
         if (docId && docId !== activeDocId) {
-          // Charger d'abord, exporter apr?s transition
+          document.querySelectorAll('.file').forEach(f => f.classList.remove('active'));
+          target.classList.add('active');
+          loadDoc(docId);
+          saveSidebarOnly();
+          setTimeout(exportMarkdown, 350);
+        } else {
+          exportMarkdown();
+        }
+      });
+      addCtxItem('\u2B07', 'Exporter en PDF', () => {
+        const docId = target.dataset.docId;
+        if (docId && docId !== activeDocId) {
           document.querySelectorAll('.file').forEach(f => f.classList.remove('active'));
           target.classList.add('active');
           loadDoc(docId);
@@ -2042,6 +2123,30 @@ document.addEventListener('DOMContentLoaded', () => {
           exportPdf();
         }
       });
+      addCtxSep();
+      addCtxItem('\u2715', 'Supprimer', () => {
+        const lbl  = target.querySelector('.file-label');
+        const name = lbl ? lbl.textContent.trim() : 'cette feuille';
+        showConfirm({ icon: '?', title: 'Supprimer la feuille ?',
+          body: 'La feuille <strong>' + escapeHtml(name) + '</strong> sera d\u00E9finitivement supprim\u00E9e.',
+          onConfirm: () => {
+            const docId = target.dataset.docId;
+            if (docId) {
+              try { localStorage.removeItem(DOC_PREFIX + docId); } catch(_) {}
+            }
+            target.remove();
+            if (target.classList.contains('active') || docId === activeDocId) {
+              activeDocId = null;
+              const first = rootFileListEl.querySelector('.file') ||
+                            document.querySelector('.file-list .file');
+              if (first) { first.classList.add('active'); loadDoc(first.dataset.docId); }
+              else createRootFile();
+            }
+            saveSidebarOnly();
+            showToast('Feuille supprim\u00E9e');
+          }
+        });
+      }, true);
     }
     if (kind === 'folder') {
       addCtxItem('\u270E', 'Renommer', () => {
