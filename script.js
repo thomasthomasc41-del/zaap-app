@@ -4557,6 +4557,205 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ============================================================
+     GUIDE ZAAP -- panneau flottant draggable
+  ============================================================ */
+  var guidePanelEl   = null;
+  var guidePage      = 0;
+  var guideTotalPgs  = 3;
+  var guideIsDrag    = false;
+  var guideDragOffX  = 0, guideDragOffY = 0;
+
+  var GUIDE_CONTENT = [
+    {
+      icon: 'file-text',
+      title: 'Mode Page',
+      items: [
+        { icon: '\u270F', title: 'Ecriture libre', desc: 'Tape dans la feuille blanche. Pagination automatique. Sauvegarde en temps r\u00E9el dans le navigateur.' },
+        { icon: '\uD83D\uDCC2', title: 'Multi-documents', desc: 'Feuilles et dossiers dans la sidebar. Menu \u2026 sur chaque fichier : renommer, dupliquer, exporter PDF/Markdown, supprimer.' },
+        { icon: 'B', title: 'Mise en forme', desc: 'Ctrl+B gras \u2022 Ctrl+I italique \u2022 Ctrl+1 H1 \u2022 Ctrl+2 H2 \u2022 Ctrl+Shift+J justifier \u2022 > + Espace citation.' },
+        { icon: '\uD83D\uDD0D', title: 'Recherche', desc: 'Ctrl+F dans le doc actif. Mode Recherche pour chercher dans tous tes documents avec surlignage.' }
+      ]
+    },
+    {
+      icon: 'sparkles',
+      title: 'IA int\u00E9gr\u00E9e',
+      items: [
+        { icon: '\uD83D\uDD11', title: 'Cl\u00E9 API', desc: '\u2699 Pr\u00E9f\u00E9rences > colle ta cl\u00E9 Anthropic. Stock\u00E9e localement. Obtiens-en une sur console.anthropic.com.' },
+        { icon: '\u2728', title: 'Correcteur IA (Ctrl+Shift+A)', desc: 'S\u00E9lectionne du texte. Affiner (correction), R\u00E9\u00E9crire (reformulation) ou \u00C9lever (registre pro).' },
+        { icon: '\uD83D\uDCD6', title: 'D\u00E9finitions auto', desc: 'Survole un terme entre guillemets, clique sur la bulle \uD83D\uDCD6 pour ins\u00E9rer la d\u00E9finition.' },
+        { icon: '\uD83D\uDCDA', title: 'Fiches de r\u00E9vision', desc: 'Ic\u00F4ne fiches dans la toolbar. Q/R ou R\u00E9sum\u00E9 par th\u00E8me. Espace pour retourner, fl\u00E8ches pour naviguer.' },
+        { icon: '!', title: 'Commandes !', desc: '!mail, !agenda, !cherche en d\u00E9but de ligne \u2014 bascule vers le bon mode avec le contexte pr\u00E9-rempli.' }
+      ]
+    },
+    {
+      icon: 'calendar',
+      title: 'Agenda',
+      items: [
+        { icon: '\uD83D\uDDD3', title: 'Cr\u00E9er un \u00E9v\u00E9nement', desc: 'Clique sur un jour en vue mois ou semaine pour ouvrir la modale de cr\u00E9ation.' },
+        { icon: '\uD83E\uDD16', title: 'Commande !agenda', desc: '!agenda r\u00E9union Paul vendredi 14h \u2192 l\'IA extrait la date et l\'heure automatiquement.' },
+        { icon: '\uD83D\uDD00', title: 'Glisser-d\u00E9poser', desc: 'Fais glisser un \u00E9v\u00E9nement vers un autre jour ou une autre heure pour le d\u00E9placer.' },
+        { icon: '\u2713', title: 'R\u00E9cap hebdo', desc: 'Ev\u00E9nements de la semaine et checklist de t\u00E2ches accessibles depuis le panneau R\u00E9sum\u00E9.' }
+      ]
+    }
+  ];
+
+  function createGuidePanel() {
+    if (guidePanelEl) return;
+
+    guidePanelEl = document.createElement('div');
+    guidePanelEl.id = 'guidePanel';
+    guidePanelEl.className = 'flashcard-panel';
+    guidePanelEl.style.cssText = 'position:fixed;width:480px;max-height:520px;display:none;flex-direction:column;top:50%;left:50%;transform:translate(-50%,-50%);z-index:7500;';
+
+    // Header draggable
+    var header = document.createElement('div');
+    header.className = 'flashcard-panel-header';
+    header.id = 'guidePanelHeader';
+    header.innerHTML = '<div class="flashcard-panel-left"><span class="flashcard-panel-icon">?</span><span class="flashcard-panel-title">Guide Zaap</span></div><div class="flashcard-panel-right"><span class="flashcard-counter" id="guidePageCounter">1 / 3</span><button class="flashcard-close" id="guideCloseBtn">\u2715</button></div>';
+    guidePanelEl.appendChild(header);
+
+    // Contenu
+    var content = document.createElement('div');
+    content.id = 'guideContent';
+    content.style.cssText = 'flex:1;overflow-y:auto;padding:16px 20px;';
+    guidePanelEl.appendChild(content);
+
+    // Footer avec dots
+    var footer = document.createElement('div');
+    footer.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:14px;padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;';
+
+    var prevBtn = document.createElement('button');
+    prevBtn.className = 'flashcard-nav-btn';
+    prevBtn.id = 'guidePrevBtn';
+    prevBtn.textContent = '\u2190';
+
+    var dotsEl = document.createElement('div');
+    dotsEl.style.cssText = 'display:flex;gap:7px;';
+    for (var d = 0; d < guideTotalPgs; d++) {
+      var dot = document.createElement('span');
+      dot.dataset.dot = d;
+      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:rgba(80,60,35,0.18);cursor:pointer;transition:background .15s,transform .15s;display:inline-block;';
+      if (d === 0) dot.style.background = 'var(--accent)';
+      dotsEl.appendChild(dot);
+    }
+
+    var nextBtn = document.createElement('button');
+    nextBtn.className = 'flashcard-nav-btn';
+    nextBtn.id = 'guideNextBtn';
+    nextBtn.textContent = '\u2192';
+
+    footer.appendChild(prevBtn);
+    footer.appendChild(dotsEl);
+    footer.appendChild(nextBtn);
+    guidePanelEl.appendChild(footer);
+
+    document.body.appendChild(guidePanelEl);
+
+    // Drag
+    (function() {
+      var dragging = false, offX = 0, offY = 0;
+      header.addEventListener('mousedown', function(e) {
+        if (e.target.closest('.flashcard-close')) return;
+        dragging = true;
+        var rect = guidePanelEl.getBoundingClientRect();
+        offX = e.clientX - rect.left;
+        offY = e.clientY - rect.top;
+        guidePanelEl.style.transform = 'none';
+        guidePanelEl.style.left = rect.left + 'px';
+        guidePanelEl.style.top  = rect.top  + 'px';
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', function(e) { if (dragging) { guidePanelEl.style.left = (e.clientX - offX) + 'px'; guidePanelEl.style.top = (e.clientY - offY) + 'px'; } });
+      document.addEventListener('mouseup',   function()  { dragging = false; });
+    })();
+
+    // Listeners
+    document.getElementById('guideCloseBtn').addEventListener('click', closeGuidePanel);
+    prevBtn.addEventListener('click', function() { guideGoTo(guidePage - 1); });
+    nextBtn.addEventListener('click', function() { guideGoTo(guidePage + 1); });
+    dotsEl.addEventListener('click', function(e) {
+      var dot = e.target.closest('[data-dot]');
+      if (dot) guideGoTo(parseInt(dot.dataset.dot));
+    });
+  }
+
+  function guideGoTo(n) {
+    if (n < 0) n = guideTotalPgs - 1;
+    if (n >= guideTotalPgs) n = 0;
+    guidePage = n;
+
+    var data    = GUIDE_CONTENT[n];
+    var content = document.getElementById('guideContent');
+    var counter = document.getElementById('guidePageCounter');
+    var dotsEl  = guidePanelEl.querySelectorAll('[data-dot]');
+
+    if (counter) counter.textContent = (n + 1) + ' / ' + guideTotalPgs;
+    dotsEl.forEach(function(d) {
+      d.style.background = parseInt(d.dataset.dot) === n ? 'var(--accent)' : 'rgba(80,60,35,0.18)';
+      d.style.transform  = parseInt(d.dataset.dot) === n ? 'scale(1.25)' : 'scale(1)';
+    });
+
+    // Render page
+    content.innerHTML = '';
+
+    // Titre page
+    var ph = document.createElement('div');
+    ph.style.cssText = 'display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text);margin-bottom:12px;';
+    ph.textContent = data.title;
+    content.appendChild(ph);
+
+    // Items
+    data.items.forEach(function(item) {
+      var el = document.createElement('div');
+      el.style.cssText = 'display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 13px;margin-bottom:7px;';
+
+      var ico = document.createElement('div');
+      ico.style.cssText = 'font-size:16px;width:22px;text-align:center;flex-shrink:0;margin-top:1px;';
+      ico.textContent = item.icon;
+
+      var ctn = document.createElement('div');
+      var ttl = document.createElement('div');
+      ttl.style.cssText = 'font-family:var(--font-ui);font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px;';
+      ttl.textContent = item.title;
+      var dsc = document.createElement('div');
+      dsc.style.cssText = 'font-family:var(--font-ui);font-size:12px;color:var(--text-muted);line-height:1.55;';
+      dsc.textContent = item.desc;
+      ctn.appendChild(ttl);
+      ctn.appendChild(dsc);
+
+      el.appendChild(ico);
+      el.appendChild(ctn);
+      content.appendChild(el);
+    });
+  }
+
+  function openGuidePanel(page) {
+    createGuidePanel();
+    guidePanelEl.style.display = 'flex';
+    // Centrer
+    guidePanelEl.style.transform = 'translate(-50%, -50%)';
+    guidePanelEl.style.left = '50%';
+    guidePanelEl.style.top  = '50%';
+    guideGoTo(page || 0);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function closeGuidePanel() {
+    if (guidePanelEl) guidePanelEl.style.display = 'none';
+  }
+
+  // Listeners guide
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#openGuideBtn'))    { openGuidePanel(0); return; }
+    var learn = e.target.closest('.onboarding-learn');
+    if (learn) {
+      var map = { page: 0, ai: 1, agenda: 2 };
+      openGuidePanel(map[learn.dataset.guide] || 0);
+    }
+  });
+
+
+  /* ============================================================
      INIT
   ============================================================ */
   // Tenter de restaurer depuis localStorage
