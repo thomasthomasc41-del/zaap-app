@@ -361,7 +361,30 @@
 
       </div>
     </div>
-    <div class="mode-panel" id="mode-search"><div class="stub-message">◎ Recherche — prochainement</div></div>
+    <div class="mode-panel" id="mode-search">
+      <div class="search-layout">
+
+        <!-- Barre de recherche -->
+        <div class="search-bar-wrap">
+          <div class="search-bar">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="searchInput" class="search-input"
+              placeholder="Rechercher dans tous les documents…" autocomplete="off" spellcheck="false"/>
+            <button class="search-clear" id="searchClear" style="display:none">✕</button>
+          </div>
+          <span class="search-stats" id="searchStats"></span>
+        </div>
+
+        <!-- Résultats -->
+        <div class="search-results" id="searchResults">
+          <div class="search-empty" id="searchEmpty">
+            <i data-lucide="search" style="width:32px;height:32px;opacity:0.2"></i>
+            <p>Tape un mot pour chercher dans tous tes documents</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
     <div class="mode-panel" id="mode-cloud"><div class="stub-message">⬡ Nuage — prochainement</div></div>
 
   </main>

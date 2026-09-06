@@ -1701,6 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lower = val.slice(1).toLowerCase();
 
     if (/mail|envoie/.test(lower))           showHint('> Mode Mail');
+    if (/cherche|search|trouve|find/.test(lower)) showHint('> Rechercher dans les documents');
     else if (/cherche|search/.test(lower))   showHint('> Recherche');
     else if (/demain|lundi|mardi|mercredi|jeudi|vendredi|\d+h/.test(lower)) showHint('> Agenda');
     else                                     showHint('Entree pour valider');
@@ -1739,7 +1740,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
-    if (/cherche|search/.test(lower))      { switchMode('search');   showToast('> Mode Recherche'); return; }
+    if (/cherche|search|trouve|find/.test(lower)) {
+      switchMode('search');
+      // Extraire le terme apres le mot-cle
+      const query = lower
+        .replace(/^(cherche|search|trouve|find)\s*/i, '')
+        .trim();
+      if (query && searchInput) {
+        setTimeout(function() {
+          searchInput.value = query;
+          searchInput.focus();
+          runSearch(query);
+        }, 80);
+      } else if (searchInput) {
+        setTimeout(function() { searchInput.focus(); }, 80);
+      }
+      return;
+    }
 
     const ev = parseEvent(lower);
     if (ev) {
@@ -4281,6 +4298,262 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'ArrowLeft')  fcNav(-1);
     if (e.key === ' ')          { e.preventDefault(); fcCardEl.classList.toggle('flipped'); }
     if (e.key === 'Escape')     closeFcPanel();
+  });
+
+  /* ============================================================
+     MODE RECHERCHE
+  ============================================================ */
+  var searchInput   = document.getElementById('searchInput');
+  var searchClear   = document.getElementById('searchClear');
+  var searchResults = document.getElementById('searchResults');
+  var searchStats   = document.getElementById('searchStats');
+  var searchEmpty   = document.getElementById('searchEmpty');
+  var searchTimer   = null;
+
+  // Normaliser le texte pour la recherche (insensible casse + accents)
+  function normalizeText(str) {
+    return str.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  // Extraire le texte brut depuis le HTML
+  function htmlToText(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    tmp.querySelectorAll('.page-spacer, .ai-inline-wrapper').forEach(function(el) { el.remove(); });
+    return tmp.innerText || tmp.textContent || '';
+  }
+
+  // Trouver le dossier parent d'un doc
+  function findDocFolder(docId) {
+    try {
+      var raw = localStorage.getItem(SIDEBAR_KEY);
+      if (!raw) return '';
+      var data = JSON.parse(raw);
+      var folders = data.folders || [];
+      for (var i = 0; i < folders.length; i++) {
+        var f = folders[i];
+        var files = f.files || [];
+        for (var j = 0; j < files.length; j++) {
+          if (files[j].id === docId) return f.name || '';
+        }
+      }
+    } catch(_) {}
+    return '';
+  }
+
+  // Recuperer tous les documents
+  function getAllDocs() {
+    var docs = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (!key || !key.startsWith(DOC_PREFIX)) continue;
+        var raw = localStorage.getItem(key);
+        if (!raw) continue;
+        var data = JSON.parse(raw);
+        var docId = key.replace(DOC_PREFIX, '');
+        var title = data.title || 'Sans titre';
+        var bodyHtml = '';
+        if (data.pages && data.pages.length) {
+          bodyHtml = data.pages.map(function(p) { return p.html || ''; }).join(' ');
+        }
+        var bodyText = htmlToText(bodyHtml);
+        docs.push({ id: docId, title: title, text: bodyText, html: bodyHtml });
+      }
+    } catch(_) {}
+    return docs;
+  }
+
+  // Surligner les occurrences dans un extrait
+  function highlightExcerpt(text, query, maxLen) {
+    maxLen = maxLen || 200;
+    var norm    = normalizeText(text);
+    var normQ   = normalizeText(query);
+    var idx     = norm.indexOf(normQ);
+    if (idx === -1) return escapeHtml(text.slice(0, maxLen));
+
+    // Centrer l'extrait autour du match
+    var start = Math.max(0, idx - 60);
+    var end   = Math.min(text.length, idx - 60 + maxLen);
+    var excerpt = (start > 0 ? '\u2026' : '') + text.slice(start, end) + (end < text.length ? '\u2026' : '');
+
+    // Surligner toutes les occurrences dans l'extrait
+    var normEx  = normalizeText(excerpt);
+    var result  = '';
+    var pos     = 0;
+    var nIdx;
+    while ((nIdx = normEx.indexOf(normQ, pos)) !== -1) {
+      result += escapeHtml(excerpt.slice(pos, nIdx));
+      result += '<mark>' + escapeHtml(excerpt.slice(nIdx, nIdx + query.length)) + '</mark>';
+      pos = nIdx + query.length;
+    }
+    result += escapeHtml(excerpt.slice(pos));
+    return result;
+  }
+
+  // Compter les occurrences
+  function countOccurrences(text, query) {
+    var norm  = normalizeText(text);
+    var normQ = normalizeText(query);
+    var count = 0;
+    var pos   = 0;
+    while ((pos = norm.indexOf(normQ, pos)) !== -1) { count++; pos += normQ.length; }
+    return count;
+  }
+
+  // Lancer la recherche
+  function runSearch(query) {
+    query = (query || '').trim();
+
+    // Vider
+    searchResults.innerHTML = '';
+    searchResults.appendChild(searchEmpty);
+
+    if (!query || query.length < 1) {
+      searchEmpty.style.display = 'flex';
+      searchStats.textContent   = '';
+      searchClear.style.display = 'none';
+      return;
+    }
+
+    searchClear.style.display = 'block';
+    searchEmpty.style.display = 'none';
+
+    var docs    = getAllDocs();
+    var matches = [];
+
+    docs.forEach(function(doc) {
+      var fullText  = doc.title + ' ' + doc.text;
+      var count     = countOccurrences(fullText, query);
+      if (count === 0) return;
+
+  // Compter separement titre et corps
+      var titleCount = countOccurrences(doc.title, query);
+      var bodyCount  = countOccurrences(doc.text,  query);
+
+      matches.push({
+        id: doc.id, title: doc.title,
+        text: doc.text, count: count,
+        titleCount: titleCount, bodyCount: bodyCount
+      });
+    });
+
+    // Trier par nombre d'occurrences
+    matches.sort(function(a, b) { return b.count - a.count; });
+
+    if (matches.length === 0) {
+      var noRes = document.createElement('div');
+      noRes.className = 'search-no-results';
+      noRes.textContent = 'Aucun r\u00E9sultat pour "' + query + '"';
+      searchResults.appendChild(noRes);
+      searchStats.textContent = 'Aucun r\u00E9sultat';
+      return;
+    }
+
+    // Afficher les resultats
+    var totalOccurrences = matches.reduce(function(s, m) { return s + m.count; }, 0);
+    searchStats.textContent = matches.length + ' document' + (matches.length > 1 ? 's' : '') +
+      ' \u2014 ' + totalOccurrences + ' occurrence' + (totalOccurrences > 1 ? 's' : '');
+
+    matches.forEach(function(m) {
+      var folder = findDocFolder(m.id);
+      var card = document.createElement('div');
+      card.className = 'search-result-card';
+
+      var header = document.createElement('div');
+      header.className = 'search-result-header';
+
+      var titleWrap = document.createElement('div');
+      titleWrap.style.display = 'flex';
+      titleWrap.style.alignItems = 'center';
+      titleWrap.style.gap = '6px';
+      titleWrap.style.overflow = 'hidden';
+
+      var titleEl2 = document.createElement('span');
+      titleEl2.className = 'search-result-title';
+      titleEl2.textContent = m.title || 'Sans titre';
+      titleWrap.appendChild(titleEl2);
+
+      if (folder) {
+        var folderEl = document.createElement('span');
+        folderEl.className = 'search-result-folder';
+        folderEl.textContent = '\u25B8 ' + folder;
+        titleWrap.appendChild(folderEl);
+      }
+
+      var countEl = document.createElement('span');
+      countEl.className = 'search-result-count';
+      countEl.textContent = m.count + ' occurrence' + (m.count > 1 ? 's' : '');
+
+      header.appendChild(titleWrap);
+      header.appendChild(countEl);
+
+      var excerpt = document.createElement('div');
+      excerpt.className = 'search-result-excerpt';
+      excerpt.innerHTML = highlightExcerpt(m.text || m.title, query);
+
+      card.appendChild(header);
+      card.appendChild(excerpt);
+
+      // Clic -> ouvrir le document
+      card.addEventListener('click', function() {
+        switchMode('page');
+        // Trouver et activer le fichier dans la sidebar
+        var fileEl = document.querySelector('.file[data-doc-id="' + m.id + '"]');
+        if (fileEl) {
+          document.querySelectorAll('.file').forEach(function(f) { f.classList.remove('active'); });
+          fileEl.classList.add('active');
+          loadDoc(m.id);
+          saveSidebarOnly();
+        } else {
+          // Charger directement si pas trouve dans la sidebar
+          loadDoc(m.id);
+        }
+        // Lancer la recherche Ctrl+F sur le terme
+        setTimeout(function() {
+          var findInput = document.getElementById('findInput');
+          var findBar   = document.getElementById('findBar');
+          if (findInput && findBar) {
+            findBar.classList.add('open');
+            findInput.value = query;
+            findInput.dispatchEvent(new Event('input'));
+            findInput.focus();
+          }
+        }, 400);
+      });
+
+      searchResults.appendChild(card);
+    });
+  }
+
+  // Listeners recherche
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() { runSearch(searchInput.value); }, 120);
+    });
+  }
+  if (searchClear) {
+    searchClear.addEventListener('click', function() {
+      searchInput.value = '';
+      searchInput.focus();
+      runSearch('');
+    });
+  }
+
+  // Rafraichir la recherche quand on bascule sur le mode
+  document.querySelectorAll('.mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (btn.dataset.mode === 'search') {
+        setTimeout(function() {
+          if (searchInput) searchInput.focus();
+          if (searchInput && searchInput.value) runSearch(searchInput.value);
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+        }, 50);
+      }
+    });
   });
 
   /* ============================================================
