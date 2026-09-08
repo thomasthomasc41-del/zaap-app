@@ -918,12 +918,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const zone = activeEditableZone();
       if (zone) { e.preventDefault(); snapshotNow(zone); applyFormat('bold'); return; }
     }
-    if (ctrl && e.key.toLowerCase() === 'i') {
+    if (ctrl && e.key.toLowerCase() === 'i' && !e.shiftKey && !/^[0-9]$/.test(e.key)) {
       const zone = activeEditableZone();
       if (zone) { e.preventDefault(); snapshotNow(zone); applyFormat('italic'); return; }
     }
-    if (ctrl && e.key === '1') { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('h1'); return; }
-    if (ctrl && e.key === '2') { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('h2'); return; }
+    if (ctrl && (e.key === '1' || e.code === 'Digit1')) { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('h1'); return; }
+    if (ctrl && (e.key === '2' || e.code === 'Digit2')) { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('h2'); return; }
     if (ctrl && e.shiftKey && e.key === '8') { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('ul'); return; }
     if (ctrl && e.shiftKey && e.key === '7') { e.preventDefault(); snapshotNow(activeEditableZone()); applyFormat('ol'); return; }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'l') { e.preventDefault(); applyFormat('alignLeft');    return; }
@@ -1280,7 +1280,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // S'assurer que la classe est bien l? (robustesse)
       titleEl.className = 'page-title';
     }
-    if (textBox  && data.content != null) textBox.innerHTML   = data.content;
+    if (textBox  && data.content != null) {
+      // Nettoyer les spacers sauvegardes pour eviter les doublons au recalcul
+      var tmpDiv = document.createElement('div');
+      tmpDiv.innerHTML = data.content;
+      tmpDiv.querySelectorAll('.page-spacer').forEach(function(s) { s.remove(); });
+      // Nettoyer aussi les noeuds texte vides en trop au debut/fin
+      while (tmpDiv.firstChild && tmpDiv.firstChild.nodeType === 3 && !tmpDiv.firstChild.textContent.trim()) {
+        tmpDiv.removeChild(tmpDiv.firstChild);
+      }
+      while (tmpDiv.lastChild && tmpDiv.lastChild.nodeType === 3 && !tmpDiv.lastChild.textContent.trim()) {
+        tmpDiv.removeChild(tmpDiv.lastChild);
+      }
+      textBox.innerHTML = tmpDiv.innerHTML;
+    }
     // Sync sidebar title
     const active = document.querySelector(`.file[data-doc-id="\${activeDocId}"]`)
                 || document.querySelector('.file.active');
@@ -3305,6 +3318,14 @@ document.addEventListener('DOMContentLoaded', () => {
     block.appendChild(delBtn);
 
     afterEl.after(block);
+
+    // Inserer un div vide apres le bloc pour que le curseur puisse s'y placer
+    var nextSib = block.nextSibling;
+    if (!nextSib || (nextSib.nodeType === 1 && nextSib.classList.contains('definition-block'))) {
+      var emptyDiv = document.createElement('div');
+      emptyDiv.innerHTML = '<br>';
+      block.after(emptyDiv);
+    }
 
     // N?ud texte d?di? + curseur s?par?
     const defTextNode = document.createTextNode('');
