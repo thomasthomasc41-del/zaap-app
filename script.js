@@ -2453,7 +2453,72 @@ document.addEventListener('DOMContentLoaded', () => {
       aiOriginalText  = targetOverride.text;
       aiOriginalBlock = targetOverride.block;
     }
-    // Reset ? l'?tape 1
+    // Capturer la selection courante si elle existe
+    const currentSel = window.getSelection();
+    if (currentSel && !currentSel.isCollapsed && currentSel.rangeCount > 0) {
+      window._aiCapturedRange = currentSel.getRangeAt(0).cloneRange();
+    } else {
+      window._aiCapturedRange = null;
+    }
+
+    // Positionner le panneau sous la derniere ligne selectionnee
+    (function positionAiPanel() {
+      var top = null;
+      // Essayer depuis la selection courante
+      var sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        var range = sel.getRangeAt(0).cloneRange();
+        range.collapse(false); // aller au point de FIN de la selection
+        var rects = range.getClientRects();
+        if (rects && rects.length > 0) {
+          var lastRect = rects[rects.length - 1];
+          top = lastRect.bottom + 12;
+        }
+      }
+      // Fallback : depuis le bloc courant
+      if (top === null && aiOriginalBlock) {
+        var rect = aiOriginalBlock.getBoundingClientRect();
+        top = rect.bottom + 12;
+      }
+      // Garantir que le panneau reste dans la fenetre
+      if (top !== null) {
+        var panelH = aiPanelEl.offsetHeight || 360;
+        var maxTop  = window.innerHeight - panelH - 16;
+        var minTop  = 60;
+        top = Math.max(minTop, Math.min(top, maxTop));
+        aiPanelEl.style.top = top + 'px';
+      } else {
+        // Fallback centrage vertical
+        aiPanelEl.style.top = '50%';
+      }
+    })();
+
+    // Mettre a jour le badge de mode detecte
+    (function() {
+      var badge = document.getElementById('aiModeBadge');
+      if (!badge) return;
+      var target = getAiTarget();
+      if (target && target.mode === 'word') {
+        badge.textContent = 'Mot / Phrase';
+        badge.style.display = 'inline-block';
+        badge.style.cssText = 'display:inline-block;font-family:var(--font-ui);font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(184,107,42,0.12);color:var(--accent);margin-left:6px;';
+      } else if (target && target.mode === 'paragraph') {
+        badge.textContent = 'Paragraphe';
+        badge.style.display = 'inline-block';
+        badge.style.cssText = 'display:inline-block;font-family:var(--font-ui);font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:rgba(80,60,35,0.08);color:var(--text-hint);margin-left:6px;';
+      } else {
+        badge.style.display = 'none';
+      }
+    })();
+
+    // Effacer la selection visuelle pour eviter la confusion
+    // (on a deja capture la range dans _aiCapturedRange)
+    try {
+      var winSel = window.getSelection();
+      if (winSel) winSel.removeAllRanges();
+    } catch(_) {}
+
+    // Reset a l'etape 1
     aiStepModesEl.style.display  = 'block';
     aiStepResultEl.style.display = 'none';
     aiActionsEl.style.display    = 'none';
@@ -2554,13 +2619,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Capturer localement avant toute fermeture
-    const capturedText  = aiOriginalText;
-    const capturedBlock = aiOriginalBlock;
+    const capturedText      = aiOriginalText;
+    const capturedBlock     = aiOriginalBlock;
+    const capturedSelection = window._aiCapturedRange || null;
 
     closeAiPanel();
 
-    // Passer directement en param?tre - pas de variable globale
-    await startInlineStream(mode, capturedText, capturedBlock);
+    await startInlineStream(mode, capturedText, capturedBlock, capturedSelection);
   });
 
   // ?? Streaming inline dans la page ????????????????????????
@@ -2568,7 +2633,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let aiInlineCorrEl   = null; // le bloc de correction en cours d'\u00E9criture
   let aiInlineFloating = null; // les boutons flottants
 
-  async function startInlineStream(mode, originalText, originalBlock) {
+  async function startInlineStream(mode, originalText, originalBlock, selectionRange) {
     if (!originalBlock || !originalText) return;
     cancelInline(); // nettoyer un pr\u00E9c\u00E9dent
 
@@ -2576,6 +2641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aiOriginalText  = originalText;
     aiOriginalBlock = originalBlock;
     aiCorrectedText = '';
+    window._aiSelectionRange = selectionRange || null;
 
     // 1. Griser le bloc original
     originalBlock.classList.add('ai-original-struck');
@@ -2649,7 +2715,31 @@ document.addEventListener('DOMContentLoaded', () => {
     aiInlineFloating.querySelector('.ai-inline-accept').addEventListener('click', () => {
       if (!aiOriginalBlock || !aiCorrectedText) return;
       snapshotNow(textBox);
-      aiOriginalBlock.textContent = aiCorrectedText;
+
+      // Si on a une range de selection precise, remplacer uniquement cette selection
+      const savedRange = window._aiSelectionRange;
+      if (savedRange && aiOriginalBlock.contains(savedRange.commonAncestorContainer)) {
+        try {
+          savedRange.deleteContents();
+          savedRange.insertNode(document.createTextNode(aiCorrectedText));
+          window._aiSelectionRange = null;
+        } catch(_) {
+          // Fallback : remplacer le bloc entier
+          aiOriginalBlock.textContent = aiCorrectedText;
+        }
+      } else if (aiOriginalBlock.tagName === 'UL' || aiOriginalBlock.tagName === 'OL') {
+        // Pour les listes : remplacer le innerText proprement
+        aiOriginalBlock.innerHTML = '';
+        var listLines = aiCorrectedText.split('\n');
+        listLines = listLines.filter(function(l) { return l.trim(); });
+        lines.forEach(function(line) {
+          const li = document.createElement('li');
+          li.textContent = line.replace(/^[-*0-9.]\s*/, '');
+          aiOriginalBlock.appendChild(li);
+        });
+      } else {
+        aiOriginalBlock.textContent = aiCorrectedText;
+      }
       aiOriginalBlock.classList.remove('ai-original-struck');
       aiInlineWrapper.remove();
       aiInlineWrapper = null; aiInlineCorrEl = null; aiInlineFloating = null;
@@ -2692,33 +2782,56 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ?? Trouver le texte cible (s?lection ou paragraphe courant) ?
+  var AI_SHORT_SEL_THRESHOLD = 80; // caracteres : en dessous = mode mot/phrase
+
   function getAiTarget() {
     const sel = window.getSelection();
+    const tb  = textBox || document.querySelector('.textBox');
 
-    // Si s?lection non vide dans le textBox ? utiliser le texte s?lectionn?
-    // On prend le bloc du FOCUS (point de fin) pour l'emplacement du wrapper
     if (sel && !sel.isCollapsed && sel.toString().trim()) {
-      const focusNode = sel.focusNode;
-      const el = focusNode.nodeType === 3 ? focusNode.parentElement : focusNode;
-      if (el.closest('.textBox') || el.closest('.page-title')) {
-        // Le bloc = enfant direct du textBox contenant la fin de la s?lection
-        const block = getDirectTextBlock(el);
-        const selectedText = sel.toString().trim();
-        if (block && selectedText) {
-          return { text: selectedText, block };
+      const selectedText = sel.toString().trim();
+      const range        = sel.getRangeAt(0);
+      const anchorEl     = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+      const focusEl      = sel.focusNode.nodeType  === 3 ? sel.focusNode.parentElement  : sel.focusNode;
+
+      if (tb && tb.contains(anchorEl)) {
+        const anchorBlock = getDirectTextBlock(anchorEl);
+        const focusBlock  = getDirectTextBlock(focusEl);
+
+        // DETECTION AUTOMATIQUE
+        // Selection courte (mot / phrase) -> replacement precis dans le texte
+        if (selectedText.length <= AI_SHORT_SEL_THRESHOLD) {
+          return {
+            text:      selectedText,
+            block:     anchorBlock || focusBlock,
+            selection: range.cloneRange(), // replacement exact
+            mode:      'word',
+          };
+        }
+
+        // Selection longue (paragraphe) -> corriger le bloc entier du focus
+        const targetBlock = focusBlock || anchorBlock;
+        if (targetBlock) {
+          return {
+            text:      targetBlock.innerText ? targetBlock.innerText.trim() : selectedText,
+            block:     targetBlock,
+            selection: null, // remplacer le bloc entier
+            mode:      'paragraph',
+          };
         }
       }
     }
 
-    // Curseur simple ? bloc courant
+    // Curseur simple -> bloc courant entier (mode paragraphe)
     if (!sel || sel.rangeCount === 0) return null;
-    const node  = sel.anchorNode;
-    const el    = node.nodeType === 3 ? node.parentElement : node;
+    const node = sel.anchorNode;
+    const el   = node ? (node.nodeType === 3 ? node.parentElement : node) : null;
+    if (!el) return null;
     const block = getDirectTextBlock(el);
     if (!block) return null;
-    const text  = block.innerText.trim();
+    const text = block.innerText ? block.innerText.trim() : '';
     if (!text) return null;
-    return { text, block };
+    return { text, block, selection: null, mode: 'paragraph' };
   }
 
   // Remonter jusqu'au bloc enfant direct du textBox (ou page-title)
@@ -2726,17 +2839,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el) return null;
     const tb = textBox || document.querySelector('.textBox');
     const pt = document.querySelector('.page-title');
-    // Si on est dans le titre
     if (pt && pt.contains(el)) return pt;
     if (!tb) return null;
-    // Remonter jusqu'au premier enfant direct de tb
     let cur = el;
     while (cur && cur.parentElement !== tb) {
       cur = cur.parentElement;
       if (!cur) return null;
     }
-    // V?rifier que c'est un bloc avec du texte
-    if (cur && cur.parentElement === tb && cur.innerText?.trim()) return cur;
+    if (cur && cur.parentElement === tb) return cur;
     return null;
   }
 

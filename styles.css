@@ -182,7 +182,7 @@ body {
 .file.active { background: rgba(184,107,42,0.28); color: #f5c99a; }
 
 .new-file-button {
-  display: block;
+  display: none;
   margin-left: 18px;
   font-size: 11px;
   color: rgba(240,232,218,0.3);
@@ -193,6 +193,7 @@ body {
   font-family: var(--font-ui);
   text-align: left;
 }
+.folder.open .new-file-button { display: block; }
 .new-file-button:hover { color: rgba(240,232,218,0.65); }
 
 .new-folder-button { display: none; }
