@@ -5019,6 +5019,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
+     TDM TOGGLE
+  ============================================================ */
+  var tocToggle  = document.getElementById('tocToggle');
+  var tocSection = document.getElementById('tocSection');
+  var TOC_KEY    = 'zaap_toc_open';
+
+  // Restaurer l'etat sauvegarde (ouvert par defaut)
+  (function() {
+    try {
+      var saved = localStorage.getItem(TOC_KEY);
+      if (saved === 'false') tocSection.classList.add('collapsed');
+    } catch(_) {}
+  })();
+
+  if (tocToggle) {
+    tocToggle.addEventListener('click', function() {
+      var isCollapsed = tocSection.classList.toggle('collapsed');
+      try { localStorage.setItem(TOC_KEY, isCollapsed ? 'false' : 'true'); } catch(_) {}
+    });
+  }
+
+  /* ============================================================
      INIT
   ============================================================ */
   // Tenter de restaurer depuis localStorage
