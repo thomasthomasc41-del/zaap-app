@@ -1708,7 +1708,7 @@ body.dark .ai-margin-btn:hover { background: rgba(184,107,42,0.15); }
   position: fixed;
   top: 50%;
   right: 28px;
-  transform: translateY(-50%) translateX(20px);
+  transform: translateX(20px);
   width: 340px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1717,13 +1717,13 @@ body.dark .ai-margin-btn:hover { background: rgba(184,107,42,0.15); }
   z-index: 7000;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, top 0.15s ease;
   overflow: hidden;
 }
 .ai-panel.open {
   opacity: 1;
   pointer-events: all;
-  transform: translateY(-50%) translateX(0);
+  transform: translateX(0);
 }
 body.dark .ai-panel { background: #1e1b17; border-color: rgba(255,255,255,0.08); }
 
@@ -3756,3 +3756,68 @@ body.dark .search-result-card { background: #1c1916; }
   color: var(--text-hint);
   padding: 40px 20px;
 }
+
+/* Bouton corriger toute la page */
+.ai-whole-page-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 0 16px 12px;
+  padding: 7px 12px;
+  background: none;
+  border: 1px dashed rgba(184,107,42,0.35);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--text-hint);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.ai-whole-page-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================================
+   PALETTE SAUGE / VERT NATUREL
+============================================================ */
+body.theme-sage {
+  filter: hue-rotate(130deg) saturate(0.75);
+}
+body.theme-sage .page-sheet,
+body.theme-sage .page-title,
+body.theme-sage .textBox {
+  filter: hue-rotate(-130deg) saturate(1.33);
+}
+
+/* Sélecteur de thème dans Préférences */
+.theme-selector {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.theme-swatch {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.1s;
+  position: relative;
+}
+.theme-swatch:hover { transform: scale(1.1); }
+.theme-swatch.active { border-color: var(--accent); }
+.theme-swatch::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--text-hint);
+  white-space: nowrap;
+}
+.theme-swatch[data-theme="default"] { background: linear-gradient(135deg, #2e2318 50%, #b86b2a 50%); }
+.theme-swatch[data-theme="sage"]    { background: linear-gradient(135deg, #1e2e21 50%, #5a8c62 50%); }

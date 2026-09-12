@@ -1118,6 +1118,54 @@ document.addEventListener('DOMContentLoaded', () => {
     attachDeleteAcceleration(textBox);
     attachDefinitionTrigger(textBox);
 
+    // Intercepter le collage pour nettoyer le HTML riche
+    textBox.addEventListener('paste', function(e) {
+      e.preventDefault();
+      var cd = e.clipboardData || window.clipboardData;
+      if (!cd) return;
+
+      // Ignorer les images
+      var hasImage = false;
+      for (var i = 0; i < cd.items.length; i++) {
+        if (cd.items[i].type.indexOf('image') !== -1) { hasImage = true; break; }
+      }
+      if (hasImage) {
+        showToast('Les images ne sont pas encore supportees dans Zaap');
+        return;
+      }
+
+      // Recuperer HTML ou texte brut
+      var html  = cd.getData('text/html');
+      var plain = cd.getData('text/plain');
+
+      var cleaned = '';
+      if (html && html.trim()) {
+        cleaned = cleanPastedHtml(html);
+      } else {
+        cleaned = plainTextToHtml(plain);
+      }
+
+      // Inserer dans le document
+      var sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      var range = sel.getRangeAt(0);
+      range.deleteContents();
+      var frag = document.createElement('div');
+      frag.innerHTML = cleaned;
+      var docFrag = document.createDocumentFragment();
+      while (frag.firstChild) docFrag.appendChild(frag.firstChild);
+      range.insertNode(docFrag);
+      // Placer le curseur apres le contenu insere
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      scheduleAutosave();
+      updateWordCount();
+      schedulePageBreaks();
+    });
+
+
     // Suppression des blocs d?finition via mousedown (plus fiable que click sur contenteditable=false)
     textBox.addEventListener('mousedown', e => {
       const delBtn = e.target.closest('.definition-delete');
@@ -2442,9 +2490,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let aiCorrectedText = '';  // texte corrige par l'IA
 
   const AI_PROMPTS = {
-    correct: "Tu es un correcteur orthographique et stylistique expert en francais. Corrige les fautes d'orthographe, de grammaire, de ponctuation et ameliore legerement le style. Conserve le sens et le ton de l'auteur. Reponds UNIQUEMENT avec le texte corrige, sans commentaire ni explication.",
-    rephrase: "Tu es un expert en redaction francaise. Reformule ce texte pour le rendre plus fluide, plus precis et plus engageant. Conserve le sens exact mais am\u00E9liore la formulation. Reponds UNIQUEMENT avec le texte reformule, sans commentaire ni explication.",
-    formal: "Tu es un expert en redaction formelle et soutenue en francais. Reecris ce texte dans un registre soutenu et professionnel. Utilise un vocabulaire riche et une syntaxe soignee. Reponds UNIQUEMENT avec le texte reecrit, sans commentaire ni explication.",
+    correct: "Tu es un correcteur orthographique et stylistique expert en francais. Corrige les fautes d'orthographe, de grammaire, de ponctuation et ameliore legerement le style. Conserve le sens et le ton de l'auteur. Reponds UNIQUEMENT avec le texte corrige, sans commentaire ni explication. N'utilise JAMAIS de Markdown (pas de **, ##, *, _, etc.).",
+    rephrase: "Tu es un expert en redaction francaise. Reformule ce texte pour le rendre plus fluide, plus precis et plus engageant. Conserve le sens exact mais am\u00E9liore la formulation. Reponds UNIQUEMENT avec le texte reformule, sans commentaire ni explication. N'utilise JAMAIS de Markdown (pas de **, ##, *, _, etc.).",
+    formal: "Tu es un assistant pedagogique expert. Developpe ces notes de cours en restant CONCIS et PROPORTIONNE : si le texte fait 1 ligne, reponds en 3-4 lignes maximum. Si le texte fait un paragraphe, reponds en 2-3 paragraphes maximum. Ajoute une explication claire et un exemple si pertinent. Ne developpe pas au-dela du necessaire. Reponds UNIQUEMENT avec le texte developpe, sans commentaire ni introduction. N'utilise JAMAIS de Markdown (pas de **, ##, *, _, etc.).",
   };
 
   // ?? Ouverture / fermeture ????????????????????????????????
@@ -2531,6 +2579,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   aiPanelClose.addEventListener('click', closeAiPanel);
+
+
 
   document.addEventListener('mousedown', e => {
     if (aiPanelEl.classList.contains('open') &&
@@ -4712,7 +4762,7 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'IA int\u00E9gr\u00E9e',
       items: [
         { icon: '\uD83D\uDD11', title: 'Cl\u00E9 API', desc: '\u2699 Pr\u00E9f\u00E9rences > colle ta cl\u00E9 Anthropic. Stock\u00E9e localement. Obtiens-en une sur console.anthropic.com.' },
-        { icon: '\u2728', title: 'Correcteur IA (Ctrl+Shift+A)', desc: 'S\u00E9lectionne du texte. Affiner (correction), R\u00E9\u00E9crire (reformulation) ou \u00C9lever (registre pro).' },
+        { icon: '\u2728', title: 'Correcteur IA (Ctrl+Shift+A)', desc: 'S\u00E9lectionne du texte. Affiner (correction), R\u00E9\u00E9crire (reformulation) ou D\u00E9velopper (enrichir la notion).' },
         { icon: '\uD83D\uDCD6', title: 'D\u00E9finitions auto', desc: 'Survole un terme entre guillemets, clique sur la bulle \uD83D\uDCD6 pour ins\u00E9rer la d\u00E9finition.' },
         { icon: '\uD83D\uDCDA', title: 'Fiches de r\u00E9vision', desc: 'Ic\u00F4ne fiches dans la toolbar. Q/R ou R\u00E9sum\u00E9 par th\u00E8me. Espace pour retourner, fl\u00E8ches pour naviguer.' },
         { icon: '!', title: 'Commandes !', desc: '!mail, !agenda, !cherche en d\u00E9but de ligne \u2014 bascule vers le bon mode avec le contexte pr\u00E9-rempli.' }
@@ -4885,6 +4935,88 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+
+  /* ============================================================
+     NETTOYAGE COLLER (PASTE)
+  ============================================================ */
+  function cleanPastedHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+
+    // Supprimer les elements inutiles
+    var unwanted = ['script','style','meta','link','head','svg','img',
+                    'figure','figcaption','iframe','video','audio','canvas'];
+    unwanted.forEach(function(tag) {
+      tmp.querySelectorAll(tag).forEach(function(el) { el.remove(); });
+    });
+
+    // Nettoyer recursivement
+    function processNode(node) {
+      if (node.nodeType === 3) return node.textContent;
+      if (node.nodeType !== 1) return '';
+
+      var tag = node.tagName.toLowerCase();
+      var children = Array.from(node.childNodes).map(processNode).join('');
+
+      // Conserver la structure de base
+      if (tag === 'b' || tag === 'strong') return '<strong>' + children + '</strong>';
+      if (tag === 'i' || tag === 'em')     return '<em>' + children + '</em>';
+      if (tag === 'br')  return '<br>';
+      if (tag === 'h1')  return '<div><strong>' + children + '</strong></div>';
+      if (tag === 'h2')  return '<div><strong>' + children + '</strong></div>';
+      if (tag === 'h3' || tag === 'h4' || tag === 'h5' || tag === 'h6')
+        return '<div>' + children + '</div>';
+      if (tag === 'li')  return '<div>' + children + '</div>';
+      if (tag === 'ul' || tag === 'ol') return children;
+      if (tag === 'p' || tag === 'div') {
+        var inner = children.trim();
+        return inner ? '<div>' + inner + '</div>' : '';
+      }
+      if (tag === 'tr') return '<div>' + children + '</div>';
+      if (tag === 'td' || tag === 'th') return children + ' ';
+      if (tag === 'table' || tag === 'tbody' || tag === 'thead') return children;
+      if (tag === 'a') return children;
+      if (tag === 'span') return children;
+      // Pour tout le reste : garder juste le texte
+      return children;
+    }
+
+    var result = Array.from(tmp.childNodes).map(processNode).join('');
+
+    // Nettoyer les divs vides et les espaces excessifs
+    result = result.replace(/<div><\/div>/g, '');
+    result = result.replace(/(<div>)\s+(<\/div>)/g, '');
+    result = result.trim();
+
+    return result || '';
+  }
+
+  function plainTextToHtml(text) {
+    if (!text) return '';
+    // Chaque ligne devient un div
+    return text.split('\n').map(function(line) {
+      var escaped = line
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return escaped ? '<div>' + escaped + '</div>' : '<div><br></div>';
+    }).join('');
+  }
+
+  /* ============================================================
+     FEEDBACK
+  ============================================================ */
+  var feedbackBtn = document.getElementById('feedbackBtn');
+  if (feedbackBtn) {
+    feedbackBtn.addEventListener('click', function() {
+    feedbackBtn.addEventListener('click', function() {
+      var subject = encodeURIComponent('[Zaap Beta] Retour / Bug');
+      var body = encodeURIComponent('Bonjour Thomas,\n\nType : [ ] Bug   [ ] Amelioration   [ ] Autre\n\nDescription :\n\n\nEtapes pour reproduire (si bug) :\n\n\n---\nVersion Zaap : Beta\nNavigateur : ' + navigator.userAgent.split(' ').slice(-2).join(' '));
+      window.open('mailto:thomas.thomasc41@gmail.com?subject=' + subject + '&body=' + body);
+    });
+      window.open('mailto:thomas.thomasc41@gmail.com?subject=' + subject + '&body=' + body);
+    });
+  }
 
   /* ============================================================
      INIT
