@@ -416,7 +416,9 @@ document.addEventListener('DOMContentLoaded', () => {
     (rootFiles || []).forEach(f => rootFileListEl.appendChild(createFileItem(f.name, f.active, f.id)));
     folderList.innerHTML = '';
     (folders || []).forEach(folder => {
-      const li = createFolderEl(folder.name, folder.open);
+      // Ouvrir uniquement le dossier contenant le fichier actif, fermer tous les autres
+      var hasActive = (folder.files || []).some(function(f) { return f.active; });
+      var li = createFolderEl(folder.name, hasActive);
       const fl = li.querySelector('.file-list');
       (folder.files || []).forEach(f => fl.appendChild(createFileItem(f.name, f.active, f.id)));
       folderList.appendChild(li);
