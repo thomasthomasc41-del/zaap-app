@@ -5043,6 +5043,135 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ============================================================
+     MON ESPACE -- VUE DEDIEE
+  ============================================================ */
+  var workspaceRecapEl = document.getElementById('workspaceRecap');
+
+  function getWorkspaceStats() {
+    var stats = { folders: 0, files: 0, words: 0, recent: [] };
+    try {
+      var sd = JSON.parse(localStorage.getItem(SIDEBAR_KEY) || '{}');
+      var folders = sd.folders || [];
+      stats.folders = folders.length;
+      folders.forEach(function(folder) {
+        (folder.files || []).forEach(function(f) {
+          stats.files++;
+          try {
+            var raw  = localStorage.getItem(DOC_PREFIX + f.id);
+            if (!raw) return;
+            var data = JSON.parse(raw);
+            var tmp  = document.createElement('div');
+            tmp.innerHTML = data.content || '';
+            var text = tmp.innerText || tmp.textContent || '';
+            var wc   = text.trim() ? text.trim().split(/\s+/).length : 0;
+            stats.words += wc;
+            stats.recent.push({ id: f.id, name: f.name || 'Sans titre', folder: folder.name || '', savedAt: data.savedAt || 0, words: wc });
+          } catch(_) {}
+        });
+      });
+      stats.recent.sort(function(a, b) { return b.savedAt - a.savedAt; });
+      stats.recent = stats.recent.slice(0, 5);
+    } catch(_) {}
+    return stats;
+  }
+
+  function wsFormatDate(ts) {
+    if (!ts) return '?';
+    var d = new Date(ts);
+    var diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 60)    return 'Il y a ' + diff + 's';
+    if (diff < 3600)  return 'Il y a ' + Math.floor(diff / 60) + 'min';
+    if (diff < 86400) return 'Il y a ' + Math.floor(diff / 3600) + 'h';
+    if (diff < 604800) return 'Il y a ' + Math.floor(diff / 86400) + 'j';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  }
+
+  function renderWorkspaceRecap() {
+    if (!workspaceRecapEl) return;
+    var stats  = getWorkspaceStats();
+    var wName  = workspaceNameEl ? workspaceNameEl.textContent.trim() : 'Mon espace';
+
+    workspaceRecapEl.innerHTML = '';
+
+    // Greeting
+    var greeting = document.createElement('div');
+    greeting.className = 'ws-greeting';
+    greeting.innerHTML = '<div class="ws-greeting-title">' + wName + '</div><div class="ws-greeting-sub">Vue d\'ensemble de ton espace de travail</div>';
+    workspaceRecapEl.appendChild(greeting);
+
+    // Stats
+    var statsEl = document.createElement('div');
+    statsEl.className = 'ws-stats';
+    function makeCard(val, label) {
+      var c = document.createElement('div');
+      c.className = 'ws-stat-card';
+      c.innerHTML = '<div class="ws-stat-val">' + val + '</div><div class="ws-stat-label">' + label + '</div>';
+      return c;
+    }
+    statsEl.appendChild(makeCard(stats.folders, 'Dossiers'));
+    statsEl.appendChild(makeCard(stats.files,   'Feuilles'));
+    statsEl.appendChild(makeCard(stats.words.toLocaleString('fr-FR'), 'Mots'));
+    workspaceRecapEl.appendChild(statsEl);
+
+    // Recents
+    var recSection = document.createElement('div');
+    var recTitle = document.createElement('div');
+    recTitle.className = 'ws-section-title';
+    recTitle.textContent = 'Derniers documents modifis';
+    recSection.appendChild(recTitle);
+
+    var recList = document.createElement('div');
+    recList.className = 'ws-recent-list';
+
+    if (stats.recent.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'font-family:var(--font-ui);font-size:13px;color:var(--text-hint);padding:20px 0;text-align:center;';
+      empty.textContent = 'Aucun document encore  cre ta premire feuille !';
+      recList.appendChild(empty);
+    } else {
+      stats.recent.forEach(function(doc) {
+        var row = document.createElement('div');
+        row.className = 'ws-recent-row';
+
+        var left = document.createElement('div');
+        left.className = 'ws-recent-left';
+        left.innerHTML = '<div class="ws-recent-name">' + escapeHtml(doc.name) + '</div>' +
+          '<div class="ws-recent-meta">' + (doc.folder ? escapeHtml(doc.folder) + ' \u2014 ' : '') + doc.words + ' mots</div>';
+
+        var date = document.createElement('div');
+        date.className = 'ws-recent-date';
+        date.textContent = wsFormatDate(doc.savedAt);
+
+        row.appendChild(left);
+        row.appendChild(date);
+
+        row.addEventListener('click', function() {
+          var fileEl = document.querySelector('.file[data-doc-id="' + doc.id + '"]');
+          if (fileEl) {
+            document.querySelectorAll('.file').forEach(function(f) { f.classList.remove('active'); });
+            fileEl.classList.add('active');
+            var parentFolder = fileEl.closest('.folder');
+            if (parentFolder) parentFolder.classList.add('open');
+          }
+          loadDoc(doc.id);
+          saveSidebarOnly();
+          switchMode('page');
+        });
+
+        recList.appendChild(row);
+      });
+    }
+    recSection.appendChild(recList);
+    workspaceRecapEl.appendChild(recSection);
+  }
+
+  // Clic sur "Mon espace" -> basculer sur la vue workspace
+  workspaceNameEl.addEventListener('click', function() {
+    renderWorkspaceRecap();
+    switchMode('workspace');
+  });
+
+  /* ============================================================
      INIT
   ============================================================ */
   // Tenter de restaurer depuis localStorage
