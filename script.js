@@ -993,6 +993,99 @@ document.addEventListener('DOMContentLoaded', () => {
      TOAST
   ============================================================ */
   let toastTimer;
+  function showToastWithTwoActions(msg, btn1Label, onBtn1, btn2Label, onBtn2) {
+    clearTimeout(toastTimer);
+    toastEl.innerHTML = '';
+    var text = document.createElement('span');
+    text.textContent = msg;
+    toastEl.appendChild(text);
+    var btnStyle = 'margin-left:8px;padding:2px 10px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);border-radius:5px;font-family:var(--font-ui);font-size:12px;color:#fff;cursor:pointer;flex-shrink:0;';
+    var b1 = document.createElement('button');
+    b1.textContent = btn1Label;
+    b1.style.cssText = btnStyle;
+    b1.addEventListener('click', function() { clearTimeout(toastTimer); toastEl.classList.remove('show'); toastEl.innerHTML = ''; toastEl.style.display = ''; onBtn1(); });
+    var b2 = document.createElement('button');
+    b2.textContent = btn2Label;
+    b2.style.cssText = btnStyle;
+    b2.addEventListener('click', function() { clearTimeout(toastTimer); toastEl.classList.remove('show'); toastEl.innerHTML = ''; toastEl.style.display = ''; onBtn2(); });
+    toastEl.appendChild(b1);
+    toastEl.appendChild(b2);
+    toastEl.style.display = 'flex';
+    toastEl.style.alignItems = 'center';
+    toastEl.classList.add('show');
+    toastTimer = setTimeout(function() { toastEl.classList.remove('show'); toastEl.innerHTML = ''; toastEl.style.display = ''; }, 8000);
+  }
+
+  function getAgendaChipStyle(dateStr, timeStr) {
+    var evDate = new Date((dateStr || '') + 'T' + (timeStr || '09:00') + ':00');
+    var diff   = evDate - Date.now();
+    if (diff < 0)          return { bg: '#f8e0e0', color: '#c0392b' };
+    if (diff < 86400000)   return { bg: '#fef3cd', color: '#b8860b' };
+    if (diff < 172800000)  return { bg: '#fff3e0', color: '#e67e22' };
+    return { bg: '#e8f5e9', color: '#2e7d32' };
+  }
+
+  function insertAgendaChip(ev) {
+    var tb = textBox || document.querySelector('.textBox');
+    if (!tb) return;
+    var st      = getAgendaChipStyle(ev.date, ev.time);
+    var dateObj = ev.date ? new Date(ev.date + 'T00:00:00') : null;
+    var dateStr = dateObj ? dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+    var label   = '\uD83D\uDCC5 ' + (ev.title || 'Ev\u00E9nement') + (dateStr ? ' \u2014 ' + dateStr : '') + (ev.time ? ' ' + ev.time : '');
+    var chip    = document.createElement('span');
+    chip.className        = 'agenda-chip';
+    chip.dataset.eventId  = ev.id || '';
+    chip.dataset.eventDate = ev.date || '';
+    chip.contentEditable  = 'false';
+    chip.title            = 'Voir dans l\u2019agenda';
+    chip.style.cssText    = 'display:inline-block;padding:2px 10px;border-radius:20px;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;margin:0 3px;background:' + st.bg + ';color:' + st.color + ';border:1px solid ' + st.color + '30;user-select:none;';
+    chip.textContent      = label;
+    chip.addEventListener('click', function() {
+      if (ev.date) agendaCurrent = new Date(ev.date + 'T00:00:00');
+      renderAgenda();
+      switchMode('calendar');
+    });
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && tb.contains(sel.anchorNode)) {
+      var range = sel.getRangeAt(0);
+      range.collapse(false);
+      range.insertNode(chip);
+      range.setStartAfter(chip);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      var div = document.createElement('div');
+      div.appendChild(chip);
+      tb.appendChild(div);
+    }
+    scheduleAutosave();
+  }
+
+  function checkUpcomingEvents() {
+    try {
+      var events = JSON.parse(localStorage.getItem(AGENDA_KEY) || '[]');
+      var now    = Date.now();
+      var soon   = events.filter(function(ev) {
+        if (!ev.date) return false;
+        var evDate = new Date(ev.date + 'T' + (ev.time || '09:00') + ':00');
+        var diff   = evDate - now;
+        return diff > 0 && diff < 86400000;
+      });
+      if (soon.length === 0) return;
+      var ev = soon[0];
+      var dateObj = new Date(ev.date + 'T' + (ev.time || '09:00') + ':00');
+      var diffH   = Math.round((dateObj - now) / 3600000);
+      var timeLabel = diffH < 1 ? 'Tr\u00E8s bient\u00F4t' : 'Dans ' + diffH + 'h';
+      showToastWithAction(
+        '\uD83D\uDCC5 ' + ev.title + ' \u2014 ' + timeLabel,
+        'Voir',
+        function() { if (ev.date) agendaCurrent = new Date(ev.date + 'T00:00:00'); renderAgenda(); switchMode('calendar'); }
+      );
+    } catch(_) {}
+  }
+
+
   function showToastWithAction(msg, actionLabel, onAction) {
     clearTimeout(toastTimer);
     toastEl.innerHTML = '';
@@ -1789,8 +1882,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function processCommand(raw) {
     const lower = raw.replace(/^!/, '').toLowerCase().trim();
 
-    if (/agenda|rdv|reunion|rappel|meeting|evenement/.test(lower)) {
-      const desc = raw.replace(/^!/, '').trim();
+    if (/^a\b|agenda|rdv|reunion|rappel|meeting|evenement/.test(lower)) {
+      const desc = raw.replace(/^!\s*a\b\s*/i, '').replace(/^!/, '').trim();
       generateAgendaEvent(desc);
       return;
     }
@@ -3996,6 +4089,16 @@ document.addEventListener('DOMContentLoaded', () => {
     saveAgendaEvents();
     closeEventModal();
     renderAgenda();
+
+    // Toast avec bouton Inserer le lien (seulement pour un nouvel evenement)
+    if (!editingEventId) {
+      var lastEv = agendaEvents[agendaEvents.length - 1];
+      showToastWithTwoActions(
+        lastEv.title + ' ajout\u00E9',
+        "Voir l'agenda",     function() { renderAgenda(); switchMode('calendar'); },
+        'Ins\u00E9rer le lien', function() { insertAgendaChip({ id: lastEv.id, title: lastEv.title, date: lastEv.date, time: lastEv.time }); }
+      );
+    }
   }
 
   function deleteEvent() {
@@ -4055,10 +4158,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Stocker la date pour naviguer si l'utilisateur accepte
       if (ev.date) agendaCurrent = new Date(ev.date + 'T00:00:00');
       // Toast avec bouton ? ne pas basculer automatiquement
-      showToastWithAction(
+      var lastEv = agendaEvents[agendaEvents.length - 1];
+      var evForChip = { id: lastEv.id, title: ev.title, date: ev.date, time: ev.time };
+      showToastWithTwoActions(
         ev.title + ' ajout\u00E9',
-        "Voir l'agenda",
-        () => { renderAgenda(); switchMode('calendar'); }
+        "Voir l'agenda",    function() { renderAgenda(); switchMode('calendar'); },
+        "Ins\u00E9rer le lien", function() { insertAgendaChip(evForChip); }
       );
     } catch(err) {
       showToast('Erreur : ' + (err.message || 'connexion impossible'));
@@ -4754,28 +4859,35 @@ document.addEventListener('DOMContentLoaded', () => {
       title: 'Mode Page',
       items: [
         { icon: '\u270F', title: 'Ecriture libre', desc: 'Tape dans la feuille blanche. Pagination automatique. Sauvegarde en temps r\u00E9el dans le navigateur.' },
-        { icon: '\uD83D\uDCC2', title: 'Multi-documents', desc: 'Feuilles et dossiers dans la sidebar. Menu \u2026 sur chaque fichier : renommer, dupliquer, exporter PDF/Markdown, supprimer.' },
+        { icon: '\uD83D\uDCC2', title: 'Multi-documents', desc: 'Feuilles et dossiers dans la sidebar. Menu \u2026 sur chaque fichier : renommer, dupliquer, exporter en PDF ou Markdown, supprimer.' },
         { icon: 'B', title: 'Mise en forme', desc: 'Ctrl+B gras \u2022 Ctrl+I italique \u2022 Ctrl+1 H1 \u2022 Ctrl+2 H2 \u2022 Ctrl+Shift+J justifier \u2022 > + Espace citation.' },
-        { icon: '\uD83D\uDD0D', title: 'Recherche', desc: 'Ctrl+F dans le doc actif. Mode Recherche pour chercher dans tous tes documents avec surlignage.' }
+        { icon: '\uD83D\uDD0D', title: 'Recherche globale', desc: 'Ctrl+F dans le doc actif. Mode Recherche (ou !cherche) pour chercher dans tous tes documents avec surlignage et compteur d\'occurrences.' },
+        { icon: '\u25C8', title: 'Mon espace', desc: 'Clique sur \u25C8 Mon espace en haut de la sidebar pour voir un r\u00E9cap : nb de dossiers, feuilles, mots totaux et derniers docs modifi\u00E9s.' },
+        { icon: '\u2261', title: 'Table des mati\u00E8res', desc: 'La TDM en bas de la sidebar liste tes titres H1/H2. Clique dessus pour naviguer. Clique sur le label pour la replier/d\u00E9plier.' }
       ]
     },
     {
       icon: 'sparkles',
       title: 'IA int\u00E9gr\u00E9e',
       items: [
-        { icon: '\uD83D\uDD11', title: 'Cl\u00E9 API', desc: '\u2699 Pr\u00E9f\u00E9rences > colle ta cl\u00E9 Anthropic. Stock\u00E9e localement. Obtiens-en une sur console.anthropic.com.' },
-        { icon: '\u2728', title: 'Correcteur IA (Ctrl+Shift+A)', desc: 'S\u00E9lectionne du texte. Affiner (correction), R\u00E9\u00E9crire (reformulation) ou D\u00E9velopper (enrichir la notion).' },
-        { icon: '\uD83D\uDCD6', title: 'D\u00E9finitions auto', desc: 'Survole un terme entre guillemets, clique sur la bulle \uD83D\uDCD6 pour ins\u00E9rer la d\u00E9finition.' },
+        { icon: '\uD83D\uDD11', title: 'Cl\u00E9 API', desc: '\u2699 Pr\u00E9f\u00E9rences > colle ta cl\u00E9 Anthropic. Stock\u00E9e localement dans ton navigateur. Obtiens-en une sur console.anthropic.com.' },
+        { icon: '\u2728', title: 'Correcteur IA (Ctrl+Shift+A)', desc: 'S\u00E9lectionne du texte puis Ctrl+Shift+A. Le panneau d\u00E9tecte automatiquement le mode : Mot/Phrase si courte s\u00E9lection, Paragraphe si longue.' },
+        { icon: 'A', title: 'Affiner', desc: 'Corrige l\'orthographe, la grammaire et am\u00E9liore la fluidit\u00E9 sans changer le sens.' },
+        { icon: 'R', title: 'R\u00E9\u00E9crire', desc: 'Reformule le texte pour le rendre plus clair et engageant, en conservant le sens.' },
+        { icon: 'D', title: 'D\u00E9velopper', desc: 'Enrichit des notes concises : 1 ligne \u2192 3-4 lignes, 1 paragraphe \u2192 2-3 paragraphes. Id\u00E9al pour compl\u00E9ter des notes prises rapidement en cours.' },
+        { icon: '\uD83D\uDCD6', title: 'D\u00E9finitions auto', desc: 'Survole un terme entre guillemets, clique sur la bulle \uD83D\uDCD6 pour ins\u00E9rer une d\u00E9finition g\u00E9n\u00E9r\u00E9e par l\'IA.' },
         { icon: '\uD83D\uDCDA', title: 'Fiches de r\u00E9vision', desc: 'Ic\u00F4ne fiches dans la toolbar. Q/R ou R\u00E9sum\u00E9 par th\u00E8me. Espace pour retourner, fl\u00E8ches pour naviguer.' },
-        { icon: '!', title: 'Commandes !', desc: '!mail, !agenda, !cherche en d\u00E9but de ligne \u2014 bascule vers le bon mode avec le contexte pr\u00E9-rempli.' }
+        { icon: '!', title: 'Commandes !', desc: '!a ou !agenda (\u00E9v\u00E9nement) \u2022 !mail (email) \u2022 !cherche (recherche) \u2014 tape ! en d\u00E9but de ligne pour acc\u00E9der aux commandes rapides.' }
       ]
     },
     {
       icon: 'calendar',
       title: 'Agenda',
       items: [
-        { icon: '\uD83D\uDDD3', title: 'Cr\u00E9er un \u00E9v\u00E9nement', desc: 'Clique sur un jour en vue mois ou semaine pour ouvrir la modale de cr\u00E9ation.' },
-        { icon: '\uD83E\uDD16', title: 'Commande !agenda', desc: '!agenda r\u00E9union Paul vendredi 14h \u2192 l\'IA extrait la date et l\'heure automatiquement.' },
+        { icon: '\uD83D\uDDD3', title: 'Cr\u00E9er un \u00E9v\u00E9nement', desc: 'Clique sur un jour en vue mois ou semaine. Apr\u00E8s enregistrement, un toast propose "Voir l\'agenda" et "Ins\u00E9rer le lien" dans tes notes.' },
+        { icon: '\uD83E\uDD16', title: 'Commande !agenda ou !a', desc: '!a r\u00E9union Paul vendredi 14h \u2192 l\'IA extrait la date et l\'heure. Le toast propose ensuite d\'ins\u00E9rer un lien cliquable dans ton texte.' },
+        { icon: '\uD83D\uDCC5', title: 'Chip cliquable', desc: 'Le lien ins\u00E9r\u00E9 dans le texte est color\u00E9 selon la proximit\u00E9 : vert (+48h), orange (demain), rouge (aujourd\'hui ou pass\u00E9). Clic \u2192 ouvre l\'agenda.' },
+        { icon: '\uD83D\uDD14', title: 'Notification', desc: '\u00C0 l\'ouverture de Zaap, un toast discret te pr\u00E9vient si un \u00E9v\u00E9nement est pr\u00E9vu dans les 24h.' },
         { icon: '\uD83D\uDD00', title: 'Glisser-d\u00E9poser', desc: 'Fais glisser un \u00E9v\u00E9nement vers un autre jour ou une autre heure pour le d\u00E9placer.' },
         { icon: '\u2713', title: 'R\u00E9cap hebdo', desc: 'Ev\u00E9nements de la semaine et checklist de t\u00E2ches accessibles depuis le panneau R\u00E9sum\u00E9.' }
       ]
@@ -5174,6 +5286,8 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ============================================================
      INIT
   ============================================================ */
+  // Verifier les evenements proches au chargement
+  setTimeout(checkUpcomingEvents, 2000);
   // Tenter de restaurer depuis localStorage
   restoreFontSize();
   const wasRestored = restore();
