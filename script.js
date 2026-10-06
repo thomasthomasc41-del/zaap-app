@@ -4122,10 +4122,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ?? Commande !agenda ? g?n?ration IA ????????????????????
   async function generateAgendaEvent(description) {
-    const prompt = 'Analyse cette description et extrais les informations pour un evenement de calendrier. ' +
-      'Reponds UNIQUEMENT en JSON avec : {"title":"...","date":"YYYY-MM-DD","time":"HH:MM","duration":60,"notes":"..."}. ' +
-      'Pour la date, base-toi sur aujourd\'hui : ' + new Date().toISOString().slice(0,10) + '. ' +
-      'Si l\'heure n\'est pas precise, mets 09:00. Si la duree n\'est pas precise, mets 60. Notes peut etre vide.';
+    var _now = new Date();
+    var _todayStr = _now.toISOString().slice(0,10);
+    var _year = _now.getFullYear();
+    var _month = _now.getMonth() + 1;
+    var _day = _now.getDate();
+    var _dayName = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][_now.getDay()];
+    var _tomorrowStr = new Date(_now.getTime()+86400000).toISOString().slice(0,10);
+    var prompt = 'Analyse cette description en francais et extrais un evenement de calendrier. ' +
+      'Reponds UNIQUEMENT avec du JSON valide : {"title":"...","date":"YYYY-MM-DD","time":"HH:MM","duration":60,"notes":"..."}. ' +
+      'Contexte : nous sommes le ' + _dayName + ' ' + _day + '/' + _month + '/' + _year + ' (ISO: ' + _todayStr + '). ' +
+      'Regles date : ' +
+      '1) Date partielle (ex "09 novembre", "9 nov", "le 15") : si ce jour est deja passe en ' + _year + ' utilise ' + (_year+1) + ' sinon ' + _year + '. ' +
+      '2) "prochain [jour]" = prochain occurrence de ce jour de semaine apres aujourd\'hui. ' +
+      '3) "demain" = ' + _tomorrowStr + '. ' +
+      '4) Pas de date du tout = dans 7 jours. ' +
+      'Regles heure : si non precisee mets 09:00. Duree si non precisee : 60. Notes vide si rien. ' +
+      'JSON uniquement, aucun texte autour.';
 
     const activeKey = (() => { try { return localStorage.getItem('zaap_api_key') || ''; } catch(_) { return ''; } })();
     const cleanKey  = (activeKey || ANTHROPIC_API_KEY).replace(/[^\x20-\x7E]/g, '').trim();
