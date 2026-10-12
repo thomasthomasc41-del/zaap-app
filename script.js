@@ -933,7 +933,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ctrl && e.key.toLowerCase() === 'd') { e.preventDefault(); toggleDark(); return; }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'f') { e.preventDefault(); toggleFocus(); return; }
     if (ctrl && e.key.toLowerCase() === 'p') { e.preventDefault(); switchMode('page'); return; }
-    if (ctrl && e.key.toLowerCase() === 'k') { e.preventDefault(); switchMode('calendar'); return; }
+    if (ctrl && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      // En mode page avec le curseur dans l'editeur -> modale lien
+      var tb_k = textBox || document.querySelector('.textBox');
+      var titleEl_k = document.querySelector('.page-title');
+      var sel_k = window.getSelection();
+      var inEditor = tb_k && sel_k && sel_k.rangeCount > 0 &&
+        (tb_k.contains(sel_k.anchorNode) || (titleEl_k && titleEl_k.contains(sel_k.anchorNode)));
+      if (currentMode === 'page' && inEditor) {
+        openLinkModal();
+      } else {
+        switchMode('calendar');
+      }
+      return;
+    }
     if (ctrl && e.key.toLowerCase() === 'm') { e.preventDefault(); switchMode('mail'); return; }
     if (ctrl && e.key.toLowerCase() === 'f') {
       e.preventDefault();
@@ -5381,6 +5395,102 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWorkspaceRecap();
     switchMode('workspace');
   });
+
+  /* ============================================================
+     MODALE INSERTION DE LIEN (Ctrl+K)
+  ============================================================ */
+  var linkModalOverlay = document.getElementById('linkModalOverlay');
+  var linkModalUrl     = document.getElementById('linkModalUrl');
+  var linkModalText    = document.getElementById('linkModalText');
+  var linkModalCancel  = document.getElementById('linkModalCancel');
+  var linkModalConfirm = document.getElementById('linkModalConfirm');
+
+  // Sauvegarde de la selection avant l'ouverture de la modale
+  var _savedLinkRange = null;
+
+  function openLinkModal() {
+    if (!linkModalOverlay) return;
+    // Sauvegarder la selection courante
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      _savedLinkRange = sel.getRangeAt(0).cloneRange();
+      // Pre-remplir le champ texte avec la selection
+      var selText = sel.toString().trim();
+      if (linkModalText) linkModalText.value = selText;
+    } else {
+      _savedLinkRange = null;
+      if (linkModalText) linkModalText.value = '';
+    }
+    if (linkModalUrl) linkModalUrl.value = '';
+    linkModalOverlay.classList.add('open');
+    setTimeout(function() { if (linkModalUrl) linkModalUrl.focus(); }, 40);
+  }
+
+  function closeLinkModal() {
+    if (!linkModalOverlay) return;
+    linkModalOverlay.classList.remove('open');
+    _savedLinkRange = null;
+  }
+
+  function applyLinkModal() {
+    var url = linkModalUrl ? linkModalUrl.value.trim() : '';
+    var text = linkModalText ? linkModalText.value.trim() : '';
+    if (!url) { closeLinkModal(); return; }
+    // Ajouter https:// si pas de protocole
+    if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(url)) {
+      url = 'https://' + url;
+    }
+    // Restaurer la selection sauvegardee
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var tb_l = textBox || document.querySelector('.textBox');
+    if (_savedLinkRange && tb_l && tb_l.contains(_savedLinkRange.startContainer)) {
+      sel.addRange(_savedLinkRange);
+    }
+    // Creer le lien
+    if (text) {
+      // Remplacer la selection par le texte demande puis lier
+      document.execCommand('insertHTML', false,
+        '<a href="' + url.replace(/"/g, '&quot;') + '" target="_blank">' +
+        text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') +
+        '</a>');
+    } else {
+      document.execCommand('createLink', false, url);
+      // Ouvrir dans un nouvel onglet
+      var sel2 = window.getSelection();
+      if (sel2 && sel2.focusNode) {
+        var a = sel2.focusNode.parentElement;
+        while (a && a.tagName !== 'A') a = a.parentElement;
+        if (a) a.setAttribute('target', '_blank');
+      }
+    }
+    scheduleAutosave();
+    closeLinkModal();
+  }
+
+  if (linkModalCancel) linkModalCancel.addEventListener('click', closeLinkModal);
+  if (linkModalConfirm) linkModalConfirm.addEventListener('click', applyLinkModal);
+
+  if (linkModalOverlay) {
+    linkModalOverlay.addEventListener('mousedown', function(e) {
+      if (e.target === linkModalOverlay) closeLinkModal();
+    });
+  }
+
+  if (linkModalUrl) {
+    linkModalUrl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyLinkModal(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeLinkModal(); }
+      if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); if (linkModalText) linkModalText.focus(); }
+    });
+  }
+  if (linkModalText) {
+    linkModalText.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyLinkModal(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeLinkModal(); }
+      if (e.key === 'Tab' && e.shiftKey) { e.preventDefault(); if (linkModalUrl) linkModalUrl.focus(); }
+    });
+  }
 
   /* ============================================================
      INIT

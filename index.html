@@ -596,7 +596,7 @@
 
         <div class="sc-page" data-page="2">
           <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>P</kbd></div><span>Mode Page</span></div>
-          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><span>Mode Agenda</span></div>
+          <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>K</kbd></div><span>Insérer un lien (mode Page) / Mode Agenda</span></div>
           <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>M</kbd></div><span>Mode Mail</span></div>
           <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>F</kbd></div><span>Rechercher dans la page</span></div>
           <div class="sc-row"><div class="sc-keys"><kbd>Ctrl</kbd><kbd>Maj</kbd><kbd>F</kbd></div><span>Mode focus</span></div>
@@ -622,6 +622,25 @@
         <button class="sc-nav-btn" id="scNext">→</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modale insertion de lien (Ctrl+K en mode Page) -->
+  <div class="link-modal-overlay" id="linkModalOverlay">
+    <div class="link-modal" role="dialog" aria-modal="true" aria-label="Insérer un lien">
+      <p class="link-modal-title">Insérer un lien</p>
+      <div class="link-modal-field">
+        <label for="linkModalUrl">URL</label>
+        <input type="url" class="link-modal-input" id="linkModalUrl" placeholder="https://" autocomplete="off" spellcheck="false"/>
+      </div>
+      <div class="link-modal-field">
+        <label for="linkModalText">Texte affiché <span style="opacity:.55;font-weight:400;">(optionnel)</span></label>
+        <input type="text" class="link-modal-input" id="linkModalText" placeholder="Laisser vide pour conserver la sélection"/>
+      </div>
+      <div class="link-modal-actions">
+        <button class="link-modal-cancel" id="linkModalCancel">Annuler</button>
+        <button class="link-modal-confirm" id="linkModalConfirm">Insérer</button>
+      </div>
     </div>
   </div>
 
