@@ -901,6 +901,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.repeat) return;
 
     if (ctrl && e.key === '/')       { e.preventDefault(); openShortcutsModal(); return; }
+
+    // Ctrl+Entr?e ? saut de page propre (nouveau paragraphe vide)
+    if (ctrl && e.key === 'Enter') {
+      var tb2 = textBox || document.querySelector('.textBox');
+      var sel2 = window.getSelection();
+      if (tb2 && sel2 && sel2.rangeCount > 0 && (tb2.contains(sel2.anchorNode) ||
+          (titleEl && titleEl.contains(sel2.anchorNode)))) {
+        e.preventDefault();
+        var range2 = sel2.getRangeAt(0);
+        range2.deleteContents();
+        range2.collapse(true);
+        // Ins?rer un <div> vide apr?s le bloc courant
+        var newDiv = document.createElement('div');
+        newDiv.innerHTML = '<br>';
+        range2.insertNode(newDiv);
+        // D?placer le curseur dans le nouveau div
+        var newRange = document.createRange();
+        newRange.setStart(newDiv, 0);
+        newRange.collapse(true);
+        sel2.removeAllRanges();
+        sel2.addRange(newRange);
+        scheduleAutosave();
+        schedulePageBreaks();
+        return;
+      }
+    }
+
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'a') { e.preventDefault(); openAiPanel(); return; }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === 'd') { e.preventDefault(); triggerDefinitionAtCursor(); return; }
     if (ctrl && e.key.toLowerCase() === 'd') { e.preventDefault(); toggleDark(); return; }
@@ -1038,9 +1065,24 @@ document.addEventListener('DOMContentLoaded', () => {
     chip.dataset.eventDate = ev.date || '';
     chip.contentEditable  = 'false';
     chip.title            = 'Voir dans l\u2019agenda';
-    chip.style.cssText    = 'display:inline-block;padding:2px 10px;border-radius:20px;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;margin:0 3px;background:' + st.bg + ';color:' + st.color + ';border:1px solid ' + st.color + '30;user-select:none;';
-    chip.textContent      = label;
-    chip.addEventListener('click', function() {
+    chip.style.cssText    = 'display:inline-flex;align-items:center;gap:4px;padding:2px 6px 2px 10px;border-radius:20px;font-family:var(--font-ui);font-size:12px;font-weight:500;cursor:pointer;margin:0 3px;background:' + st.bg + ';color:' + st.color + ';border:1px solid ' + st.color + '30;user-select:none;';
+    var chipLabel = document.createElement('span');
+    chipLabel.textContent = label;
+    var chipDel = document.createElement('span');
+    chipDel.className = 'agenda-chip-del';
+    chipDel.textContent = '\u00d7';
+    chipDel.title = 'Supprimer';
+    chipDel.style.cssText = 'margin-left:2px;font-size:13px;line-height:1;opacity:.6;cursor:pointer;padding:0 2px;';
+    chip.appendChild(chipLabel);
+    chip.appendChild(chipDel);
+    chipDel.addEventListener('mousedown', function(ev2) {
+      ev2.preventDefault();
+      ev2.stopPropagation();
+      chip.remove();
+      scheduleAutosave();
+    });
+    chip.addEventListener('click', function(ev2) {
+      if (ev2.target === chipDel) return;
       if (ev.date) agendaCurrent = new Date(ev.date + 'T00:00:00');
       renderAgenda();
       switchMode('calendar');
@@ -1622,6 +1664,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         document.execCommand('formatBlock', false, tag);
       }
+      // Les titres H1/H2 ne cumulent pas avec gras/italique pending
+      clearPendingFormats();
     }
   }
 
@@ -2540,6 +2584,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // toutes les autres touches : comportement 100% natif
       }
 
+      // Supprimer un chip agenda avec Backspace/Delete
+      var sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+        var range = sel.getRangeAt(0);
+        var container = range.startContainer;
+        var offset    = range.startOffset;
+        var adjacent  = null;
+        if (e.key === 'Backspace' && offset === 0 && container.previousSibling) {
+          adjacent = container.previousSibling;
+        } else if (e.key === 'Delete' && container.nodeType === 3 &&
+                   offset === container.length && container.nextSibling) {
+          adjacent = container.nextSibling;
+        } else if (e.key === 'Backspace' && container.nodeType === 1 && offset > 0) {
+          adjacent = container.childNodes[offset - 1];
+        } else if (e.key === 'Delete' && container.nodeType === 1 && offset < container.childNodes.length) {
+          adjacent = container.childNodes[offset];
+        }
+        if (adjacent && adjacent.nodeType === 1 && adjacent.classList && adjacent.classList.contains('agenda-chip')) {
+          e.preventDefault();
+          adjacent.remove();
+          scheduleAutosave();
+          return;
+        }
+      }
+
       if (!e.repeat) {
         // Premi?re pression : natif, on remet juste le compteur
         delRepeat.count = 0;
@@ -2818,7 +2887,14 @@ document.addEventListener('DOMContentLoaded', () => {
       while (cur && cur.parentElement !== tb) cur = cur.parentElement;
       if (cur) insertAfter = cur;
     }
-    insertAfter.after(aiInlineWrapper);
+    // Si le bloc suivant est un spacer de pagination, ins?rer apr?s lui
+    // pour que le r?sultat IA soit visible sur la m?me page logique
+    let realInsert = insertAfter;
+    if (realInsert.nextSibling && realInsert.nextSibling.classList &&
+        realInsert.nextSibling.classList.contains('page-spacer')) {
+      realInsert = realInsert.nextSibling;
+    }
+    realInsert.after(aiInlineWrapper);
 
     try {
       // N?ud texte d?di? + curseur fixe en dernier enfant
@@ -2991,7 +3067,8 @@ document.addEventListener('DOMContentLoaded', () => {
       cur = cur.parentElement;
       if (!cur) return null;
     }
-    if (cur && cur.parentElement === tb) return cur;
+    // Exclure les spacers de pagination (pas de texte utilisateur)
+    if (cur && cur.parentElement === tb && !cur.classList.contains('page-spacer')) return cur;
     return null;
   }
 
@@ -3780,7 +3857,7 @@ document.addEventListener('DOMContentLoaded', () => {
     agendaGrid.innerHTML = '';
 
     const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = localDateStr(today);
 
     // Jours du mois pr?c?dent
     for (let i = 0; i < startDow; i++) {
@@ -3799,12 +3876,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ?? Utilitaire date locale (corrige le bug UTC+X) ??????????
+  // new Date(y,m,d).toISOString() retourne la veille en UTC+2 car
+  // la date locale est minuit = UTC 22h J-1. On calcule directement.
+  function localDateStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
   // ?? Drag & Drop ?tat ?????????????????????????????????????
   let dragEventId   = null;  // id de l'\u00E9v\u00E9nement en cours de drag
   let dragSourceDate = null; // date source
 
   function makeDayCell(date, otherMonth, todayStr) {
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = localDateStr(date);
     const cell = document.createElement('div');
     cell.className = 'agenda-day' + (otherMonth ? ' other-month' : '') + (dateStr === todayStr ? ' today' : '');
     cell.dataset.date = dateStr;
@@ -3900,12 +3986,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const m2 = days[6].toLocaleDateString('fr-FR', { month: 'short' });
     agendaTitle.textContent = (m1 === m2 ? m1 : m1 + ' - ' + m2) + ' ' + y;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDateStr(new Date());
 
     // Header
     agendaWeekHeader.innerHTML = '<div class="week-hour-label"></div>';
     days.forEach(day => {
-      const dateStr = day.toISOString().slice(0, 10);
+      const dateStr = localDateStr(day);
       const hdr = document.createElement('div');
       hdr.className = 'week-day-header' + (dateStr === todayStr ? ' today' : '');
       hdr.innerHTML = '<span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em">' +
@@ -3923,7 +4009,7 @@ document.addEventListener('DOMContentLoaded', () => {
       agendaWeekBody.appendChild(label);
 
       days.forEach(day => {
-        const dateStr = day.toISOString().slice(0, 10);
+        const dateStr = localDateStr(day);
         const cell = document.createElement('div');
         cell.className = 'week-cell';
         cell.dataset.date = dateStr;
@@ -4242,8 +4328,8 @@ document.addEventListener('DOMContentLoaded', () => {
       days.push(d);
     }
 
-    const monStr = monday.toISOString().slice(0,10);
-    const sunStr = sunday.toISOString().slice(0,10);
+    const monStr = localDateStr(monday);
+    const sunStr = localDateStr(sunday);
     const weekEvents = agendaEvents.filter(ev => ev.date >= monStr && ev.date <= sunStr);
 
     el.innerHTML = '';
@@ -4254,7 +4340,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     days.forEach(day => {
-      const dateStr = day.toISOString().slice(0,10);
+      const dateStr = localDateStr(day);
       const dayEvts = weekEvents
         .filter(ev => ev.date === dateStr)
         .sort((a,b) => (a.time||'').localeCompare(b.time||''));
