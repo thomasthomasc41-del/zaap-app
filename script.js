@@ -911,12 +911,28 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         var range2 = sel2.getRangeAt(0);
         range2.deleteContents();
-        range2.collapse(true);
-        // Ins?rer un <div> vide apr?s le bloc courant
         var newDiv = document.createElement('div');
-        newDiv.innerHTML = '<br>';
-        range2.insertNode(newDiv);
-        // D?placer le curseur dans le nouveau div
+        if (titleEl && titleEl.contains(sel2.anchorNode)) {
+          newDiv.innerHTML = '<br>';
+          tb2.insertBefore(newDiv, tb2.firstChild);
+        } else {
+          // Remonter jusqu'au bloc enfant direct du textBox
+          var block = range2.startContainer;
+          while (block && block.parentNode !== tb2) block = block.parentNode;
+          if (!block || block === tb2) {
+            newDiv.innerHTML = '<br>';
+            tb2.appendChild(newDiv);
+          } else {
+            // Couper le bloc au curseur : la suite passe dans le nouveau div
+            var tail = document.createRange();
+            tail.setStart(range2.startContainer, range2.startOffset);
+            tail.setEnd(block, block.childNodes.length);
+            newDiv.appendChild(tail.extractContents());
+            if (!newDiv.textContent) newDiv.innerHTML = '<br>';
+            if (!block.textContent) block.innerHTML = '<br>';
+            tb2.insertBefore(newDiv, block.nextSibling);
+          }
+        }
         var newRange = document.createRange();
         newRange.setStart(newDiv, 0);
         newRange.collapse(true);
@@ -4306,12 +4322,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ?? Commande !agenda ? g?n?ration IA ????????????????????
   async function generateAgendaEvent(description) {
     var _now = new Date();
-    var _todayStr = _now.toISOString().slice(0,10);
     var _year = _now.getFullYear();
     var _month = _now.getMonth() + 1;
     var _day = _now.getDate();
+    var _todayStr = localDateStr(_now);
     var _dayName = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][_now.getDay()];
-    var _tomorrowStr = new Date(_now.getTime()+86400000).toISOString().slice(0,10);
+    var _tomorrowStr = localDateStr(new Date(_year, _month - 1, _day + 1));
     var prompt = 'Analyse cette description en francais et extrais un evenement de calendrier. ' +
       'Reponds UNIQUEMENT avec du JSON valide : {"title":"...","date":"YYYY-MM-DD","time":"HH:MM","duration":60,"notes":"..."}. ' +
       'Contexte : nous sommes le ' + _dayName + ' ' + _day + '/' + _month + '/' + _year + ' (ISO: ' + _todayStr + '). ' +
