@@ -1342,7 +1342,7 @@ document.addEventListener('DOMContentLoaded', () => {
   \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
   function schedulePageBreaks() {
     clearTimeout(pageBreakTimer);
-    pageBreakTimer = setTimeout(updateRulerVars, 100);
+    pageBreakTimer = setTimeout(updateRulerVars, 160);
   }
 
   const RULER_GAP  = 24;  // espace de chaque c\u00F4t\u00E9 de la ligne (px)
@@ -1365,7 +1365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return PAGE_H - 2 * PAGE_PAD_V - SPACER_H;
   }
 
-  function updateRulerVars() {
+  function updateRulerVars(isSecondPass) {
     if (!sheetEl || !textBox || !titleEl) return;
 
     const p1H = getPage1Height();
@@ -1382,10 +1382,19 @@ document.addEventListener('DOMContentLoaded', () => {
     sheetEl.style.setProperty('--page-ruler-gap', RULER_GAP + 'px');
 
     // 2. Injecter les spacers dans le textBox
+    // Mesurer la hauteur totale avant injection pour d\u00E9tecter si un reflow est encore en cours
+    const totalHBefore = textBox.scrollHeight;
     injectSpacers(p1H, pNH);
+    const totalHAfter = textBox.scrollHeight;
 
     // 3. Mettre ? jour les num?ros de page
     updatePageNumbers(offsetFromTop + LINE_H / 2, pNH + SPACER_H);
+
+    // 4. Second pass si la hauteur a chang\u00E9 (reflow incomplet au premier appel)
+    //    Uniquement au premier pass pour \u00E9viter une boucle infinie
+    if (!isSecondPass && totalHAfter !== totalHBefore) {
+      setTimeout(function() { updateRulerVars(true); }, 80);
+    }
   }
 
   // ?? Spacers non-?ditables qui poussent le texte ?????????????
@@ -2649,6 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
       scheduleSnapshot(el);
       scheduleAutosave();
       updateWordCount();
+      schedulePageBreaks();
     });
 
     el.addEventListener('keyup', e => {
@@ -2815,12 +2825,13 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', refreshMarginBtnOnScroll, { passive: true });
 
   aiMarginBtn.addEventListener('click', () => {
-    const target = marginBtnBlock
-      ? { text: marginBtnBlock.innerText.trim(), block: marginBtnBlock }
-      : getAiTarget();
+    const target = getAiTarget() || (marginBtnBlock
+      ? { text: marginBtnBlock.innerText.trim(), block: marginBtnBlock, selection: null, mode: 'paragraph' }
+      : null);
     if (!target || !target.text) { showToast('Pas de texte dans ce paragraphe'); return; }
     aiOriginalText  = target.text;
     aiOriginalBlock = target.block;
+    window._aiCapturedRange = target.selection || null;
     openAiPanel();
   });
 
@@ -2985,7 +2996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         aiOriginalBlock.innerHTML = '';
         var listLines = aiCorrectedText.split('\n');
         listLines = listLines.filter(function(l) { return l.trim(); });
-        lines.forEach(function(line) {
+        listLines.forEach(function(line) {
           const li = document.createElement('li');
           li.textContent = line.replace(/^[-*0-9.]\s*/, '');
           aiOriginalBlock.appendChild(li);
