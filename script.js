@@ -1413,16 +1413,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (child.classList.contains('page-spacer')) continue;
       const childH = child.offsetHeight || 0;
 
-      // Ce bloc d?borde la page courante ?
+      // Ce bloc deborde la page courante ?
+      // cumH > 0 : evite un spacer inutile tout au debut
       if (cumH + childH > pageLimit && cumH > 0) {
-        // Calculer le padding n?cessaire pour aligner la coupure
-        const remaining = pageLimit - cumH; // espace restant avant la ligne
+        // Calculer le padding necessaire pour aligner la coupure
+        const remaining = Math.max(0, pageLimit - cumH); // espace restant avant la ligne
         const spacer = createSpacer(remaining);
         spacer.dataset.pageNum = pageNum + 1;
         textBox.insertBefore(spacer, child);
         pageNum++;
         pageLimit = pNH;
-        cumH = 0;
+        // cumH repart depuis le debut de la nouvelle page avec ce bloc
+        cumH = childH;
+        continue; // ne pas re-additionner childH en bas de boucle
       }
       cumH += childH;
     }
