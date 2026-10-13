@@ -1397,6 +1397,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Aplatit les <div> vides/anonymes imbriqu?s dans le textBox
+  // Chrome en cr?e parfois lors d'un Entr?e dans un bloc imbriqu? :
+  // <div><div>texte</div></div> au lieu d'un enfant direct.
+  // Sans aplatissement, offsetHeight du wrapper est 0 et la pagination rate.
+  function flattenNestedBlocks(tb) {
+    var changed = true;
+    while (changed) {
+      changed = false;
+      var kids = Array.from(tb.children);
+      for (var i = 0; i < kids.length; i++) {
+        var child = kids[i];
+        if (child.tagName !== 'DIV' || child.className) continue;
+        var inner = child.querySelector(':scope > div');
+        if (!inner) continue;
+        var before = document.createElement('div');
+        var after  = document.createElement('div');
+        var n = child.firstChild;
+        while (n && n !== inner) { var nx = n.nextSibling; before.appendChild(n); n = nx; }
+        n = inner.nextSibling;
+        while (n) { var nx2 = n.nextSibling; after.appendChild(n); n = nx2; }
+        var parts = [];
+        if (before.childNodes.length) parts.push(before);
+        parts.push(inner);
+        if (after.childNodes.length) parts.push(after);
+        child.replaceWith.apply(child, parts);
+        changed = true;
+      }
+    }
+  }
+
   // ?? Spacers non-?ditables qui poussent le texte ?????????????
   // Principe : on parcourt les blocs du textBox et on ins?re des
   // spacers l? o? le texte d?passerait la hauteur de page.
@@ -1411,6 +1441,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Retirer les anciens spacers
     textBox.querySelectorAll('.page-spacer').forEach(s => s.remove());
 
+    // Aplatir les <div> anonymes imbriqu?s (cr??s par Chrome sur Entr?e dans certains contextes)
+    // pour que tous les blocs de contenu soient des enfants directs du textBox
+    flattenNestedBlocks(textBox);
+
     // Parcourir les blocs enfants du textBox
     const children = Array.from(textBox.children);
     let cumH     = 0;
@@ -1424,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Ce bloc deborde la page courante ?
       // cumH > 0 : evite un spacer inutile tout au debut
-      if (cumH + childH > pageLimit && cumH > 0) {
+      if (cumH + childH > pageLimit && cumH > 0 && childH <= pNH) {
         // Calculer le padding necessaire pour aligner la coupure
         const remaining = Math.max(0, pageLimit - cumH); // espace restant avant la ligne
         const spacer = createSpacer(remaining);
