@@ -86,15 +86,13 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.06);
   flex-shrink: 0;
   position: relative;
-  text-align: center;
 }
 
 .sidebar-logo::after {
   content: '';
   position: absolute;
   bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
   width: 28px;
   height: 1.5px;
   background: var(--accent);
@@ -408,6 +406,17 @@ body:not(.dark) .ctx-menu {
   flex-shrink: 0;
 }
 .sidebar-shortcuts-hint:hover { color: rgba(240,232,218,0.55); }
+
+.sidebar-version {
+  margin: 4px 10px 10px;
+  padding: 0 14px;
+  font-size: 10px;
+  font-family: var(--font-mono, 'DM Mono', monospace);
+  color: rgba(240,232,218,0.18);
+  letter-spacing: 0.04em;
+  user-select: none;
+  flex-shrink: 0;
+}
 
 /* ============================================================
    SIDEBAR TOGGLE
@@ -1693,6 +1702,7 @@ body.dark .textBox .cmd-preview {
   .ctx-menu,
   .toc-section,
   .sidebar-shortcuts-hint,
+  .sidebar-version,
   #mode-calendar,
   #mode-mail,
   #mode-search,
