@@ -2792,9 +2792,24 @@ document.addEventListener('DOMContentLoaded', () => {
     marginBtnBlock = null;
   }
 
-  // ?couter les mouvements de curseur
+  // Ecouter les mouvements de curseur
   document.addEventListener('selectionchange', updateMarginBtn);
   document.addEventListener('keyup', updateMarginBtn);
+
+  // Repositionner l'etoile au scroll (sinon elle reste fixee sur l'ancienne position)
+  function refreshMarginBtnOnScroll() {
+    if (!marginBtnBlock || !aiMarginBtn.classList.contains('visible')) return;
+    var rect = marginBtnBlock.getBoundingClientRect();
+    // Si le bloc n'est plus visible a l'ecran, cacher le bouton
+    if (rect.bottom < 60 || rect.top > window.innerHeight - 20) {
+      aiMarginBtn.classList.remove('visible');
+      return;
+    }
+    aiMarginBtn.style.top = (rect.top + rect.height / 2 - 14) + 'px';
+  }
+  var wrapperEl = document.querySelector('.wrapper');
+  if (wrapperEl) wrapperEl.addEventListener('scroll', refreshMarginBtnOnScroll, { passive: true });
+  window.addEventListener('scroll', refreshMarginBtnOnScroll, { passive: true });
 
   aiMarginBtn.addEventListener('click', () => {
     const target = marginBtnBlock
@@ -3044,13 +3059,16 @@ document.addEventListener('DOMContentLoaded', () => {
           };
         }
 
-        // Selection longue (paragraphe) -> corriger le bloc entier du focus
-        const targetBlock = focusBlock || anchorBlock;
+        // Selection longue -> utiliser exactement le texte selectionne
+        // (pas le bloc entier qui peut contenir bien plus que la selection)
+        const targetBlock = anchorBlock || focusBlock;
         if (targetBlock) {
+          // Si la selection tient dans un seul bloc, remplacer precisement
+          var sameBlock = (anchorBlock === focusBlock);
           return {
-            text:      targetBlock.innerText ? targetBlock.innerText.trim() : selectedText,
+            text:      selectedText,
             block:     targetBlock,
-            selection: null, // remplacer le bloc entier
+            selection: sameBlock ? range.cloneRange() : null,
             mode:      'paragraph',
           };
         }
@@ -3737,6 +3755,23 @@ document.addEventListener('DOMContentLoaded', () => {
       defBubble.style.transform = 'translateX(-50%) translateY(0)';
     });
   }
+
+  function refreshDefBubbleOnScroll() {
+    if (!defBubble || !defBubbleBlock || !defBubble.classList.contains('visible')) return;
+    var rect = defBubbleBlock.getBoundingClientRect();
+    if (rect.bottom < 60 || rect.top > window.innerHeight - 20) {
+      hideDefBubble();
+      return;
+    }
+    defBubble.style.left = (rect.left + rect.width / 2) + 'px';
+    defBubble.style.top  = (rect.top - 36) + 'px';
+  }
+
+  (function() {
+    var wEl = document.querySelector('.wrapper');
+    if (wEl) wEl.addEventListener('scroll', refreshDefBubbleOnScroll, { passive: true });
+    window.addEventListener('scroll', refreshDefBubbleOnScroll, { passive: true });
+  })();
 
   function hideDefBubble() {
     if (!defBubble) return;
