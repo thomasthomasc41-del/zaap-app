@@ -838,6 +838,22 @@ body:not(.dark) .ctx-menu {
 .textBox p { margin: 0 0 0.3em; }
 .textBox div { min-height: 1.82em; }
 
+/* Liens dans le textBox — couleur Zaap, Ctrl+clic pour ouvrir */
+.textBox a[href] {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: rgba(184,107,42,0.35);
+  text-underline-offset: 2px;
+  cursor: text;
+}
+.textBox a[href]:hover {
+  text-decoration-color: var(--accent);
+}
+body.dark .textBox a[href] {
+  color: var(--accent);
+  text-decoration-color: rgba(184,107,42,0.4);
+}
+
 /* Alignements */
 .textBox [style*="text-align: justify"],
 .textBox .align-justify { text-align: justify; hyphens: auto; }

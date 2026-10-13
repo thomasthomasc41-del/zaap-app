@@ -1346,6 +1346,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Ctrl+clic (ou Cmd+clic) sur un lien dans le textBox -> ouvrir dans un nouvel onglet
+    textBox.addEventListener('click', function(e) {
+      var a = e.target.closest('a[href]');
+      if (!a) return;
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        window.open(a.href, '_blank', 'noopener,noreferrer');
+      }
+    });
+
     // Init des rep?res CSS - attendre que le DOM soit peint
     requestAnimationFrame(() => requestAnimationFrame(updateRulerVars));
   }
