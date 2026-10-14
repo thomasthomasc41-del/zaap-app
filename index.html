@@ -97,7 +97,7 @@
     <button class="sidebar-shortcuts-hint" id="openShortcuts">⌘/ Raccourcis</button>
     <button class="sidebar-shortcuts-hint" id="openPrefs" style="opacity:0.6">⚙ Préférences</button>
     <button class="sidebar-shortcuts-hint" id="openGuideBtn" style="opacity:0.5">? Guide</button>
-    <div class="sidebar-version">Beta 0.2.3</div>
+    <div class="sidebar-version">Beta 0.2.5</div>
   </aside>
 
   <!-- Menu contextuel -->
@@ -212,6 +212,23 @@
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4.5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <button class="find-close-btn" id="findClose" title="Fermer (Esc)">✕</button>
+        </div>
+      </div>
+
+      <!-- TDM bulle flottante haut-gauche -->
+      <div class="tdm-bubble" id="tdmBubble" style="display:none">
+        <button class="tdm-pill" id="tdmPill" aria-label="Table des matières" aria-expanded="false">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
+          </svg>
+          <span class="tdm-pill-label" id="tdmPillLabel">&hellip;</span>
+          <svg class="tdm-pill-chevron" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="tdm-drop" id="tdmDrop" role="menu">
+          <div class="tdm-drop-header">Structure</div>
+          <div class="tdm-drop-list" id="tdmDropList"></div>
         </div>
       </div>
 

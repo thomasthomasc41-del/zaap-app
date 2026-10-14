@@ -2647,6 +2647,138 @@ document.addEventListener('DOMContentLoaded', () => {
   wrapper.addEventListener('scroll', updateTocSpy);
 
   /* ============================================================
+     TDM BULLE FLOTTANTE
+     R\u00E9utilise buildToc / updateTocSpy \u2014 la bulle refl\u00E8te le m\u00EAme \u00E9tat.
+  ============================================================ */
+  var tdmBubbleEl  = document.getElementById('tdmBubble');
+  var tdmPillEl    = document.getElementById('tdmPill');
+  var tdmPillLabel = document.getElementById('tdmPillLabel');
+  var tdmDropEl    = document.getElementById('tdmDrop');
+  var tdmDropList  = document.getElementById('tdmDropList');
+  var tdmOpen      = false;
+
+  function tdmSetOpen(v) {
+    tdmOpen = v;
+    tdmBubbleEl.classList.toggle('open', v);
+    tdmPillEl.setAttribute('aria-expanded', String(v));
+  }
+
+  // Ouvrir / fermer le dropdown
+  tdmPillEl.addEventListener('click', function(e) {
+    e.stopPropagation();
+    tdmSetOpen(!tdmOpen);
+  });
+
+  // Fermer sur clic ext\u00E9rieur
+  document.addEventListener('click', function(e) {
+    if (tdmOpen && !tdmBubbleEl.contains(e.target)) tdmSetOpen(false);
+  });
+
+  // Construire la liste de la bulle depuis les m\u00EAmes headings que buildToc
+  function buildTdmDrop() {
+    var headings = documentEl.querySelectorAll('h1, h2, .page-title');
+    tdmDropList.innerHTML = '';
+    var items = Array.from(headings).filter(function(h) { return h.innerText.trim() !== ''; });
+
+    if (items.length === 0) {
+      tdmBubbleEl.style.display = 'none';
+      return;
+    }
+    tdmBubbleEl.style.display = '';
+
+    items.forEach(function(h) {
+      var tag  = h.classList.contains('page-title') ? 'title' : h.tagName.toLowerCase();
+      var text = h.innerText.trim();
+      var btn  = document.createElement('button');
+      btn.className  = 'tdm-entry is-' + tag;
+      btn.dataset.target = h.id || '';
+      btn.title = text;
+
+      var dot  = document.createElement('span');
+      dot.className = 'tdm-entry-dot';
+      btn.appendChild(dot);
+
+      var label = document.createElement('span');
+      label.textContent = text;
+      btn.appendChild(label);
+
+      btn.addEventListener('click', function() {
+        tdmSetOpen(false);
+        tdmPillLabel.textContent = text;
+        // Mettre active
+        tdmDropList.querySelectorAll('.tdm-entry').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        // Scroll
+        if (h.id) {
+          var el = document.getElementById(h.id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      tdmDropList.appendChild(btn);
+    });
+  }
+
+  // Mettre \u00E0 jour le label de la pilule et l'entr\u00E9e active selon le scroll spy
+  function updateTdmSpy() {
+    var headings = documentEl.querySelectorAll('h1, h2, .page-title');
+    if (!headings.length) return;
+
+    var wrapperTop = wrapper.getBoundingClientRect().top;
+    var closest = null;
+    var closestDist = Infinity;
+
+    headings.forEach(function(h) {
+      if (!h.id) return;
+      var rect = h.getBoundingClientRect();
+      var dist = Math.abs(rect.top - wrapperTop - 60);
+      if (dist < closestDist) { closestDist = dist; closest = h; }
+    });
+
+    if (closest) {
+      var text = closest.innerText.trim();
+      tdmPillLabel.textContent = text;
+      // Mettre active dans la liste bulle
+      tdmDropList.querySelectorAll('.tdm-entry').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.target === closest.id);
+      });
+    }
+  }
+
+  // Brancher sur scroll et sur buildToc
+  wrapper.addEventListener('scroll', updateTdmSpy);
+
+  // Patch buildToc pour aussi rafra\u00EEchir la bulle
+  var _origBuildToc = buildToc;
+  buildToc = function() {
+    _origBuildToc();
+    buildTdmDrop();
+    updateTdmSpy();
+  };
+
+  // Positionner la bulle align\u00E9e avec le bord gauche de .document
+  function tdmPositionBubble() {
+    var docRect = documentEl.getBoundingClientRect();
+    if (!docRect || docRect.width === 0) return;
+    tdmBubbleEl.style.top  = (docRect.top + 14) + 'px';
+    tdmBubbleEl.style.left = (docRect.left + 14) + 'px';
+  }
+
+  window.addEventListener('resize', tdmPositionBubble);
+  wrapper.addEventListener('scroll', tdmPositionBubble);
+
+  // Masquer la bulle quand on n\u2019est pas en mode page
+  modeBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var isPage = btn.dataset.mode === 'page';
+      if (tdmBubbleEl) {
+        if (!isPage) tdmBubbleEl.style.display = 'none';
+        else { buildTdmDrop(); setTimeout(tdmPositionBubble, 50); }
+      }
+    });
+  });
+
+  /* ============================================================
      SUPPRESSION ACC\u00C9L\u00C9R\u00C9E (style iMessage)
      Sur maintien de Backspace ou Delete : supprime d'abord
      caract\u00E8re par caract\u00E8re, puis acc\u00E9l\u00E8re progressivement
@@ -5622,4 +5754,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateWordCount();
   buildToc();
+  setTimeout(tdmPositionBubble, 100);
 });
