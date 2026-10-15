@@ -3175,8 +3175,7 @@ document.addEventListener('DOMContentLoaded', () => {
       inlineStreamCursor.remove();
 
       aiInlineCorrEl.innerHTML = buildDiff(originalText, aiCorrectedText);
-      aiInlineActive = false; // stream terminé, on peut accepter/annuler
-      showInlineActions();
+      showInlineActions(); // verrou lib\u00e9r\u00e9 uniquement sur Appliquer ou Annuler
 
     } catch (err) {
       aiInlineActive = false;
