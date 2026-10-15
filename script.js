@@ -1890,9 +1890,11 @@ document.addEventListener('DOMContentLoaded', () => {
       scheduleSnapshot(textBox);
     });
 
-    // ?? Entr?e dans un blockquote vide ? sortir ???????????
+    // Enter dans un blockquote :
+    // - Si la ligne courante EST vide -> sortir du blockquote
+    // - Sinon -> comportement normal (nouvelle ligne dans le blockquote)
     textBox.addEventListener('keydown', e => {
-      if (e.key !== 'Enter') return;
+      if (e.key !== 'Enter' || e.shiftKey) return;
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
       const anchor = sel.anchorNode;
@@ -1900,12 +1902,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const bq     = el.closest('blockquote');
       if (!bq) return;
 
-      // Seulement si le blockquote est vide (une seule ligne vide)
-      const text = bq.innerText.trim();
-      if (text !== '') return;
+      // Trouver le bloc courant (div ou blockquote direct enfant)
+      // La ligne courante est vide si le noeud texte est vide ou l'el direct est vide
+      var lineEl = el;
+      // Remonter jusqu'au fils direct du blockquote
+      while (lineEl.parentElement && lineEl.parentElement !== bq) {
+        lineEl = lineEl.parentElement;
+      }
+      var lineText = lineEl.innerText !== undefined ? lineEl.innerText : (anchor.textContent || '');
+      var isEmpty  = lineText.trim() === '';
 
+      if (!isEmpty) return; // ligne non vide : Enter normal dans le blockquote
+
+      // Ligne vide -> sortir du blockquote
       e.preventDefault();
       snapshotNow(textBox);
+      // Supprimer la ligne vide courante si possible
+      if (lineEl && lineEl !== bq && lineEl.parentElement === bq) {
+        lineEl.remove();
+      }
       document.execCommand('formatBlock', false, 'div');
       scheduleSnapshot(textBox);
     });
@@ -2756,16 +2771,19 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTdmSpy();
   };
 
-  // Positionner la bulle align\u00E9e avec le bord gauche de .document
+  // Positionner la bulle : left align\u00E9 sur le bord gauche de .document,
+  // top fixe sous la toolbar \u2014 NE PAS recalculer au scroll (la bulle reste visible).
+  var TDM_TOP_OFFSET = 14; // px sous la toolbar
   function tdmPositionBubble() {
     var docRect = documentEl.getBoundingClientRect();
     if (!docRect || docRect.width === 0) return;
-    tdmBubbleEl.style.top  = (docRect.top + 14) + 'px';
+    var toolbarH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--toolbar-h')) || 46;
+    tdmBubbleEl.style.top  = (toolbarH + TDM_TOP_OFFSET) + 'px';
     tdmBubbleEl.style.left = (docRect.left + 14) + 'px';
   }
 
+  // Repositionner uniquement au resize (pas au scroll \u2014 top reste fixe)
   window.addEventListener('resize', tdmPositionBubble);
-  wrapper.addEventListener('scroll', tdmPositionBubble);
 
   // Masquer la bulle quand on n\u2019est pas en mode page
   modeBtns.forEach(function(btn) {
@@ -3081,10 +3099,19 @@ document.addEventListener('DOMContentLoaded', () => {
   let aiInlineWrapper  = null; // le wrapper inject\u00E9 dans le DOM
   let aiInlineCorrEl   = null; // le bloc de correction en cours d'\u00E9criture
   let aiInlineFloating = null; // les boutons flottants
+  let aiInlineActive   = false; // verrou : une seule correction \u00E0 la fois
 
   async function startInlineStream(mode, originalText, originalBlock, selectionRange) {
     if (!originalBlock || !originalText) return;
+
+    // Une correction est d\u00E9j\u00E0 en cours : bloquer et pr\u00E9venir
+    if (aiInlineActive) {
+      showToast('\u23F3 Correction en cours\u2026 attendez avant d\u2019en lancer une autre.');
+      return;
+    }
+
     cancelInline(); // nettoyer un pr\u00E9c\u00E9dent
+    aiInlineActive = true;
 
     // Stocker dans les globales pour accepter/annuler
     aiOriginalText  = originalText;
@@ -3148,9 +3175,11 @@ document.addEventListener('DOMContentLoaded', () => {
       inlineStreamCursor.remove();
 
       aiInlineCorrEl.innerHTML = buildDiff(originalText, aiCorrectedText);
+      aiInlineActive = false; // stream terminé, on peut accepter/annuler
       showInlineActions();
 
     } catch (err) {
+      aiInlineActive = false;
       cancelInline();
       showToast('Erreur IA : ' + (err.message || 'connexion impossible'));
       console.error('Erreur IA:', err);
@@ -3200,6 +3229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       aiInlineWrapper.remove();
       aiInlineWrapper = null; aiInlineCorrEl = null; aiInlineFloating = null;
       aiOriginalText = ''; aiOriginalBlock = null; aiCorrectedText = '';
+      aiInlineActive = false;
       scheduleSnapshot(textBox);
       scheduleAutosave();
       updateWordCount();
@@ -3215,6 +3245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aiInlineWrapper) { aiInlineWrapper.remove(); aiInlineWrapper = null; }
     aiInlineCorrEl = null; aiInlineFloating = null;
     aiOriginalText = ''; aiOriginalBlock = null; aiCorrectedText = '';
+    aiInlineActive = false;
   }
 
   // ?? Accepter / Refuser (boutons du panneau - fallback) ????
