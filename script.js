@@ -107,8 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const focusToggleBtn   = document.getElementById('focusToggle');
   const focusBarEl       = document.getElementById('focusBar');
   const focusWordCountEl = document.getElementById('focusWordCount');
-  const tocListEl        = document.getElementById('tocList');
-  const tocSectionEl     = document.getElementById('tocSection');
   const rootFileListEl   = document.getElementById('rootFileList');
   const workspaceNameEl  = document.getElementById('workspaceName');
   const workspaceCtxBtn  = document.getElementById('workspaceCtxBtn');
@@ -2583,87 +2581,7 @@ document.addEventListener('DOMContentLoaded', () => {
   newFolderBtn.addEventListener('click', createNewFolder);
 
   /* ============================================================
-     TABLE DES MATI\u00C8RES
-  ============================================================ */
-  const TOC_DELAY = 600;   // ms debounce apr\u00E8s frappe
-  let   tocTimer  = null;
-  let   tocActive = null;  // bouton TDM actif (scroll spy)
-
-  function buildToc() {
-    const headings = documentEl.querySelectorAll('h1, h2, .page-title');
-    tocListEl.innerHTML = '';
-
-    // Filtrer les titres non vides
-    const items = Array.from(headings).filter(h => h.innerText.trim() !== '');
-
-    if (items.length === 0) {
-      tocListEl.innerHTML = '<p class="toc-empty">Ajoutez des titres H1 / H2\u2026</p>';
-      return;
-    }
-
-    items.forEach((heading, i) => {
-      // Ajouter un id unique si absent
-      if (!heading.id) heading.id = 'zaap-h-' + i;
-
-      const tag  = heading.classList.contains('page-title') ? 'h1' : heading.tagName.toLowerCase();
-      const text = heading.innerText.trim();
-
-      const btn = document.createElement('button');
-      btn.className = 'toc-item toc-' + tag;
-      btn.textContent = text;
-      btn.title = text;
-      btn.dataset.target = heading.id;
-
-      btn.addEventListener('click', () => {
-        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setTocActive(btn);
-      });
-
-      tocListEl.appendChild(btn);
-    });
-  }
-
-  function scheduleTocBuild() {
-    clearTimeout(tocTimer);
-    tocTimer = setTimeout(buildToc, TOC_DELAY);
-  }
-
-  function setTocActive(btn) {
-    tocListEl.querySelectorAll('.toc-item').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    tocActive = btn;
-  }
-
-  // Scroll spy : mettre en ?vidence le titre le plus proche du haut visible
-  function updateTocSpy() {
-    const headings = documentEl.querySelectorAll('h1, h2, .page-title');
-    if (!headings.length) return;
-
-    const wrapperTop = wrapper.getBoundingClientRect().top;
-    let closest = null;
-    let closestDist = Infinity;
-
-    headings.forEach(h => {
-      if (!h.id) return;
-      const rect = h.getBoundingClientRect();
-      const dist = Math.abs(rect.top - wrapperTop - 60);
-      if (dist < closestDist) {
-        closestDist = dist;
-        closest = h;
-      }
-    });
-
-    if (closest) {
-      const btn = tocListEl.querySelector(`[data-target="${closest.id}"]`);
-      if (btn && btn !== tocActive) setTocActive(btn);
-    }
-  }
-
-  wrapper.addEventListener('scroll', updateTocSpy);
-
-  /* ============================================================
      TDM BULLE FLOTTANTE
-     R\u00E9utilise buildToc / updateTocSpy \u2014 la bulle refl\u00E8te le m\u00EAme \u00E9tat.
   ============================================================ */
   var tdmBubbleEl  = document.getElementById('tdmBubble');
   var tdmPillEl    = document.getElementById('tdmPill');
@@ -2760,16 +2678,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Brancher sur scroll et sur buildToc
   wrapper.addEventListener('scroll', updateTdmSpy);
 
-  // Patch buildToc pour aussi rafra\u00EEchir la bulle
-  var _origBuildToc = buildToc;
-  buildToc = function() {
-    _origBuildToc();
+  var TOC_DELAY = 600;
+  var tocTimer  = null;
+
+  // buildToc : assigne les IDs, construit la bulle, met \u00E0 jour le spy
+  function buildToc() {
+    // Assigner les IDs manquants
+    var allH = documentEl.querySelectorAll('h1, h2, .page-title');
+    allH.forEach(function(h, i) { if (!h.id) h.id = 'zaap-h-' + i; });
     buildTdmDrop();
     updateTdmSpy();
-  };
+  }
+
+  function scheduleTocBuild() {
+    clearTimeout(tocTimer);
+    tocTimer = setTimeout(buildToc, TOC_DELAY);
+  }
 
   // Positionner la bulle : left align\u00E9 sur le bord gauche de .document,
   // top fixe sous la toolbar \u2014 NE PAS recalculer au scroll (la bulle reste visible).
@@ -5513,28 +5439,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.open('mailto:thomas.thomasc41@gmail.com?subject=' + subject + '&body=' + body);
     });
       window.open('mailto:thomas.thomasc41@gmail.com?subject=' + subject + '&body=' + body);
-    });
-  }
-
-  /* ============================================================
-     TDM TOGGLE
-  ============================================================ */
-  var tocToggle  = document.getElementById('tocToggle');
-  var tocSection = document.getElementById('tocSection');
-  var TOC_KEY    = 'zaap_toc_open';
-
-  // Restaurer l'etat sauvegarde (ouvert par defaut)
-  (function() {
-    try {
-      var saved = localStorage.getItem(TOC_KEY);
-      if (saved === 'false') tocSection.classList.add('collapsed');
-    } catch(_) {}
-  })();
-
-  if (tocToggle) {
-    tocToggle.addEventListener('click', function() {
-      var isCollapsed = tocSection.classList.toggle('collapsed');
-      try { localStorage.setItem(TOC_KEY, isCollapsed ? 'false' : 'true'); } catch(_) {}
     });
   }
 
